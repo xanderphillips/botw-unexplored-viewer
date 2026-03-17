@@ -245,6 +245,44 @@ window.addEventListener('load',function(){
 
 	window.addEventListener('scroll',onScroll,false);
 
+	// Auto-load save file from server
+	function loadSaveFromServer() {
+		fetch('/data/game_data.sav')
+			.then(response => {
+				if (!response.ok) {
+					throw new Error('Save file not found');
+				}
+				return response.arrayBuffer();
+			})
+			.then(arrayBuffer => {
+				loadSavegameFromArrayBuffer(arrayBuffer, 'game_data.sav');
+			})
+			.catch(err => {
+				console.log('Waiting for save file...');
+			});
+	}
+
+	// Initial load
+	loadSaveFromServer();
+
+	// Set up Server-Sent Events for file change detection
+	if (typeof EventSource !== 'undefined') {
+		const eventSource = new EventSource('/api/events');
+		eventSource.onmessage = function(event) {
+			if (event.data === 'changed') {
+				// Reload the save file
+				loadSaveFromServer();
+			}
+		};
+		eventSource.onerror = function() {
+			// Fall back to polling
+			setInterval(loadSaveFromServer, 10000);
+		};
+	} else {
+		// Fallback for browsers without SSE support - poll every 10 seconds
+		setInterval(loadSaveFromServer, 10000);
+	}
+
 	// If there is saved data in the browser, load that instead
 	locationValuesTest = window.localStorage.getItem( 'botw-unexplored-viewer' );
 	if ( locationValuesTest ) {
@@ -378,3 +416,130 @@ function removeAllWaypoints() {
 	} );
 
 }
+
+// Map pan and zoom functionality
+(function() {
+	var scale = 1;
+	var panX = 0;
+	var panY = 0;
+	var isPanning = false;
+	var startX = 0;
+	var startY = 0;
+	var mapContainer = null;
+	var mapViewport = null;
+
+	function initMapPanZoom() {
+		mapViewport = document.getElementById('map-viewport');
+		mapContainer = document.getElementById('map-container');
+
+		if (!mapViewport || !mapContainer) return;
+
+		// Calculate zoom limits based on map dimensions (6000x5000px) vs viewport
+		var mapWidth = 6000;
+		var mapHeight = 5000;
+		var viewportWidth = mapViewport.clientWidth || window.innerWidth;
+		var viewportHeight = mapViewport.clientHeight || (window.innerHeight - 180);
+		var minZoom = Math.min(viewportWidth / mapWidth, viewportHeight / mapHeight);
+		var maxZoom = mapHeight / viewportHeight;
+
+		// Wrap map-container in viewport if not already
+		if (mapContainer.parentElement !== mapViewport) {
+			mapViewport.appendChild(mapContainer);
+		}
+
+		// Mouse wheel for zoom
+		mapViewport.addEventListener('wheel', function(e) {
+			e.preventDefault();
+
+			var zoomFactor = 0.1;
+			var delta = e.deltaY > 0 ? -zoomFactor : zoomFactor;
+			var newScale = Math.max(minZoom, Math.min(maxZoom, scale + delta));
+
+			// Zoom toward mouse position
+			var rect = mapViewport.getBoundingClientRect();
+			var mouseX = e.clientX - rect.left;
+			var mouseY = e.clientY - rect.top;
+
+			// Calculate the point in map coordinates before zoom
+			var mapX = (mouseX - panX) / scale;
+			var mapY = (mouseY - panY) / scale;
+
+			// Calculate new pan to keep mouse position stable
+			panX = mouseX - mapX * newScale;
+			panY = mouseY - mapY * newScale;
+
+			scale = newScale;
+			updateTransform();
+		}, { passive: false });
+
+		// Middle mouse button for pan
+		mapViewport.addEventListener('mousedown', function(e) {
+			if (e.button === 1) { // Middle mouse button
+				e.preventDefault();
+				isPanning = true;
+				startX = e.clientX - panX;
+				startY = e.clientY - panY;
+				mapViewport.style.cursor = 'grabbing';
+			}
+		});
+
+		document.addEventListener('mousemove', function(e) {
+			if (isPanning) {
+				panX = e.clientX - startX;
+				panY = e.clientY - startY;
+				updateTransform();
+			}
+		});
+
+		document.addEventListener('mouseup', function(e) {
+			if (e.button === 1 && isPanning) {
+				isPanning = false;
+				mapViewport.style.cursor = 'default';
+			}
+		});
+
+		// Prevent context menu on middle click
+		mapViewport.addEventListener('contextmenu', function(e) {
+			if (e.button === 1) {
+				e.preventDefault();
+			}
+		});
+	}
+
+	function updateTransform() {
+		// Calculate bounds to prevent showing blank space around map edges
+		var mapWidth = 6000;
+		var mapHeight = 5000;
+		var viewportWidth = mapViewport.clientWidth || window.innerWidth;
+		var viewportHeight = mapViewport.clientHeight || (window.innerHeight - 180);
+		var scaledMapWidth = mapWidth * scale;
+		var scaledMapHeight = mapHeight * scale;
+
+		// Calculate min/max pan values
+		var maxPanX = 0;
+		var maxPanY = 0;
+		var minPanX = viewportWidth - scaledMapWidth;
+		var minPanY = viewportHeight - scaledMapHeight;
+
+		// If map fits entirely in viewport, center it
+		if (scaledMapWidth < viewportWidth) {
+			minPanX = maxPanX = (viewportWidth - scaledMapWidth) / 2;
+		}
+		if (scaledMapHeight < viewportHeight) {
+			minPanY = maxPanY = (viewportHeight - scaledMapHeight) / 2;
+		}
+
+		// Clamp pan values
+		panX = Math.min(maxPanX, Math.max(minPanX, panX));
+		panY = Math.min(maxPanY, Math.max(minPanY, panY));
+
+		mapContainer.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + scale + ')';
+	}
+
+	// Initialize when DOM is ready
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', initMapPanZoom);
+	} else {
+		initMapPanZoom();
+	}
+})();
