@@ -25,7 +25,7 @@ Each metric row shows the stat label on the left and its count on the right, wit
 
 #### Track Player
 
-A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position after each save file refresh — keeping your character in view as you play. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions.
+A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position every 10 seconds — keeping your character in view as you play, even if you manually pan the map between saves. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions.
 
 #### Player Stats
 Read directly from the save file — no game interaction required:
@@ -59,7 +59,7 @@ The viewer exposes a JSON endpoint that serves as a live data feed of your curre
 GET http://localhost:3000/api
 ```
 
-Since the server polls for save file changes every 10 seconds, this endpoint always reflects your most recent manual save — no game modification or plugin required. External systems can poll `/api` on any interval to react to changes in game state.
+Since the server polls for save file changes every 10 seconds, this endpoint always reflects your most recent save — manual or auto-save — no game modification or plugin required. External systems can poll `/api` on any interval to react to changes in game state.
 
 ```json
 {
@@ -111,15 +111,15 @@ This application runs as a Docker container that automatically reads your Cemu s
 
    **If running Docker from WSL (Linux-style path):**
    ```
-   SAVE_PATH=/mnt/c/Users/YourWindowsUsername/AppData/Roaming/Cemu/mlc01/usr/save/00050000/101c9400/user/80000001/0
+   SAVE_PATH=/mnt/c/Users/YourWindowsUsername/AppData/Roaming/Cemu/mlc01/usr/save/00050000/101c9400/user/80000001
    ```
 
    **If running Docker from Windows (Command Prompt or PowerShell):**
    ```
-   SAVE_PATH=C:/Users/YourWindowsUsername/AppData/Roaming/Cemu/mlc01/usr/save/00050000/101c9400/user/80000001/0
+   SAVE_PATH=C:/Users/YourWindowsUsername/AppData/Roaming/Cemu/mlc01/usr/save/00050000/101c9400/user/80000001
    ```
 
-   Replace `YourWindowsUsername` with your Windows username. The save folder ID (`80000001`) may also differ — check your Cemu save directory if unsure.
+   Replace `YourWindowsUsername` with your Windows username. The save folder ID (`80000001`) may also differ — check your Cemu save directory if unsure. Point `SAVE_PATH` at the **root save folder** (not the `0/` subfolder) — the container mounts save slots `0` through `5` automatically.
 
 2. Build and start the container:
    ```bash
@@ -133,9 +133,9 @@ This application runs as a Docker container that automatically reads your Cemu s
 
 ### How It Works
 
-- The server reads your Cemu save file from the path defined in `server/.env`
-- The save file is monitored for changes every 10 seconds
-- The map automatically refreshes with each **Manual Save**. Autosave checkpoints do not trigger a refresh.
+- The server mounts all six Cemu save slots (`0` through `5`) from the path defined in `server/.env`
+- Save slot `0` is the manual save; slots `1`–`5` are auto-saves
+- All slots are polled every 10 seconds — the map refreshes whenever **any** slot is updated, including auto-saves
 
 ### Supported Game Versions
 
