@@ -390,15 +390,6 @@ window.addEventListener('load',function(){
 				loadSavegameFromArrayBuffer(result.buf, 'game_data.sav');
 				lastMtime = result.mtime;
 				if (result.mtime) updateSaveTimestamp(result.mtime);
-				// Track Player: re-center on player after each refresh if enabled
-				var toggle = document.getElementById('track-player-row');
-				if (toggle && toggle.getAttribute('data-tracking') === 'true' && window._playerMapPos && window.MapView) {
-					window.MapView.smoothCenterOn(
-						window._playerMapPos.x,
-						window._playerMapPos.y,
-						window.MapView.getTrackZoom()
-					);
-				}
 			})
 			.catch(function() {
 				console.log('Waiting for save file...');
@@ -439,6 +430,15 @@ window.addEventListener('load',function(){
 				if (data.mtime) updateSaveTimestamp(data.mtime);
 				if (data.mtime && data.mtime !== lastMtime) {
 					loadSaveFromServer();
+				}
+				// Track Player: re-center on every poll if enabled (covers manual panning between saves)
+				var toggle = document.getElementById('track-player-row');
+				if (toggle && toggle.getAttribute('data-tracking') === 'true' && window._playerMapPos && window.MapView) {
+					window.MapView.smoothCenterOn(
+						window._playerMapPos.x,
+						window._playerMapPos.y,
+						window.MapView.getTrackZoom()
+					);
 				}
 			})
 			.catch(function() {

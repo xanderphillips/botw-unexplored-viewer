@@ -16,39 +16,50 @@ const path = require('path');
 
 const app = express();
 const PORT = 3000;
-const DATA_PATH = 'data/game_data.sav';
 
-// Store file stats for change detection
-let lastFileStats = null;
+// All six save slots: 0 = manual save, 1–5 = auto-saves
+const SAVE_SLOTS = Array.from({length: 6}, (_, i) => path.join(__dirname, `data/game_data_${i}.sav`));
+
+// Find the most recently modified save slot.
+// Calls callback(filePath, mtimeMs) with the winner, or callback(null, null) if none are readable.
+function getMostRecentSave(callback) {
+    let remaining = SAVE_SLOTS.length;
+    let bestPath = null;
+    let bestMtime = -1;
+    SAVE_SLOTS.forEach(filePath => {
+        fs.stat(filePath, (err, stats) => {
+            if (!err && stats.isFile() && stats.mtimeMs > bestMtime) {
+                bestMtime = stats.mtimeMs;
+                bestPath = filePath;
+            }
+            if (--remaining === 0) callback(bestPath, bestMtime > -1 ? bestMtime : null);
+        });
+    });
+}
 
 // Serve static files from app directory (where Dockerfile copies them)
 app.use(express.static(__dirname));
 
-// Serve the game save file
+// Serve the most recently modified save slot
 app.get('/data/game_data.sav', (req, res) => {
-    const filePath = path.join(__dirname, DATA_PATH);
-
-    fs.stat(filePath, (statErr, stats) => {
+    getMostRecentSave((filePath, mtime) => {
+        if (!filePath) { res.status(404).send('No save files found'); return; }
         fs.readFile(filePath, (err, data) => {
-            if (err) {
-                res.status(404).send('Save file not found');
-                return;
-            }
+            if (err) { res.status(404).send('Save file not found'); return; }
             res.setHeader('Content-Type', 'application/octet-stream');
             res.setHeader('Content-Length', data.length);
             res.setHeader('Cache-Control', 'no-store');
-            if (!statErr) res.setHeader('X-File-Mtime', stats.mtimeMs);
+            res.setHeader('X-File-Mtime', mtime);
             res.send(data);
         });
     });
 });
 
-// Lightweight mtime endpoint — browser polls this to detect file changes
+// Lightweight mtime endpoint — returns the mtime of the most recently modified save slot
 app.get('/api/mtime', (req, res) => {
-    const filePath = path.join(__dirname, DATA_PATH);
-    fs.stat(filePath, (err, stats) => {
+    getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
-        res.json({ mtime: err ? null : stats.mtimeMs });
+        res.json({ mtime });
     });
 });
 
@@ -188,11 +199,13 @@ function parseSaveMetrics(buf) {
 }
 
 app.get('/api', (req, res) => {
-    const filePath = path.join(__dirname, DATA_PATH);
-    fs.readFile(filePath, (err, data) => {
+    getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
-        if (err) { res.status(404).json({ error: 'Save file not found' }); return; }
-        res.json(parseSaveMetrics(data));
+        if (!filePath) { res.status(404).json({ error: 'No save files found' }); return; }
+        fs.readFile(filePath, (err, data) => {
+            if (err) { res.status(404).json({ error: 'Save file not found' }); return; }
+            res.json(parseSaveMetrics(data));
+        });
     });
 });
 
