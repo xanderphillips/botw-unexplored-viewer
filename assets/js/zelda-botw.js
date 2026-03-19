@@ -169,20 +169,35 @@ SavegameEditor={
 
 		this.markMap( locationValues.notFound.locations, 'location' );
 
-		// Derive discovered locations (all locations minus not-found) and mark them
-		// internal_name is preserved as the waypoint id for future type-based filtering
+		// Derive discovered locations (all locations minus not-found) and mark them.
+		// Assign a location_type based on internal_name for icon selection.
 		var discoveredLocations = {};
 		for ( var _hash in locations ) {
 			var _loc = locations[ _hash ];
 			if ( !locationValues.notFound.locations[ _loc.internal_name ] ) {
+				var _type = 'checkpoint';
+				var _n = _loc.internal_name;
+				if ( _n.indexOf('Hatago') !== -1 )       _type = 'hatago';
+				else if ( _n.indexOf('Village') !== -1 ) _type = 'village';
+				else if ( _n.indexOf('Labo') !== -1 )    _type = 'labo';
+				else if ( _n.indexOf('Castle') !== -1 )  _type = 'castle';
+				else if ( _n.indexOf('ShopBougu') !== -1 )  _type = 'shop_bougu';
+				else if ( _n.indexOf('ShopJewel') !== -1 )  _type = 'shop_jewel';
+				else if ( _n.indexOf('ShopYorozu') !== -1 ) _type = 'shop_yorozu';
 				discoveredLocations[ _loc.internal_name ] = {
 					display_name: _loc.display_name,
 					x: _loc.x,
 					y: _loc.y,
+					location_type: _type,
 				};
 			}
 		}
 		this.markMap( discoveredLocations, 'location-discovered' );
+		// Set data-location-type on each discovered location waypoint for CSS icon selection
+		for ( var _dname in discoveredLocations ) {
+			var _el = document.getElementById( _dname );
+			if ( _el ) _el.setAttribute( 'data-location-type', discoveredLocations[ _dname ].location_type );
+		}
 		this.markMap( _discoveredShines, 'shrine' );
 		this.markMap( _completedShrinesMap, 'shrine-completed' );
 		this.markMap( towers, 'tower' );
@@ -581,12 +596,22 @@ function setupToolbarHover() {
 				[].forEach.call( document.querySelectorAll( '.waypoint.' + type ), function( wp ) {
 					wp.style.display = '';
 				} );
+				if ( type === 'korok' ) {
+					[].forEach.call( document.querySelectorAll( '#path-group .line' ), function( ln ) {
+						ln.style.display = '';
+					} );
+				}
 			} else {
 				label.setAttribute( 'data-hidden', 'true' );
 				localStorage.setItem( storageKey, 'true' );
 				[].forEach.call( document.querySelectorAll( '.waypoint.' + type ), function( wp ) {
 					wp.style.display = 'none';
 				} );
+				if ( type === 'korok' ) {
+					[].forEach.call( document.querySelectorAll( '#path-group .line' ), function( ln ) {
+						ln.style.display = 'none';
+					} );
+				}
 			}
 		} );
 	} );
@@ -599,6 +624,11 @@ function applyHiddenStates() {
 		[].forEach.call( document.querySelectorAll( '.waypoint.' + type ), function( wp ) {
 			wp.style.display = 'none';
 		} );
+		if ( type === 'korok' ) {
+			[].forEach.call( document.querySelectorAll( '#path-group .line' ), function( ln ) {
+				ln.style.display = 'none';
+			} );
+		}
 	} );
 }
 
@@ -638,11 +668,13 @@ function showWaypointTooltip( waypoint ) {
 	//   rightmost visual tip is at approx (left+8.6, top-1.4) in map coords.
 	var L = parseFloat( waypoint.style.left ) || 0;
 	var T = parseFloat( waypoint.style.top )  || 0;
-	var isDiamond = waypoint.classList.contains( 'shrine' ) ||
-	                waypoint.classList.contains( 'shrine-completed' ) ||
-	                waypoint.classList.contains( 'tower' ) ||
-	                waypoint.classList.contains( 'divine-beast' ) ||
+	var isDiamond = waypoint.classList.contains( 'divine-beast' ) ||
 	                waypoint.classList.contains( 'warp' );
+	var isIcon   = waypoint.classList.contains( 'shrine' ) ||
+	               waypoint.classList.contains( 'shrine-completed' ) ||
+	               waypoint.classList.contains( 'tower' ) ||
+	               waypoint.classList.contains( 'korok' ) ||
+	               waypoint.classList.contains( 'location-discovered' );
 
 	var scale = parseFloat( getComputedStyle( document.documentElement ).getPropertyValue( '--map-scale' ) ) || 1;
 	var GAP = 10 / scale; // constant 10px gap in screen space, expressed in map coords
@@ -651,6 +683,9 @@ function showWaypointTooltip( waypoint ) {
 	if ( isDiamond ) {
 		tx = L + 8.6 + GAP;  // start from right tip of diamond
 		ty = T - 1.4;         // visual center y of diamond
+	} else if ( isIcon ) {
+		tx = L + 5 + GAP;    // start from right edge of 10px icon
+		ty = T;
 	} else {
 		tx = L + 5 + GAP;    // start from right edge of circle (radius 5)
 		ty = T;               // visual center y of circle
