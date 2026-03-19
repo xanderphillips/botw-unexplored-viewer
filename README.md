@@ -2,6 +2,8 @@
 
 ### Because there _really_ needed to be 900 of them, right?
 
+A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save file directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save). Runs as a Docker container on the same machine as Cemu and is accessible from any browser on your local network.
+
 A fixed sidebar on the left tracks your progress:
 
 #### Map Stats
