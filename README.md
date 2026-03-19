@@ -2,11 +2,9 @@
 
 ### Because there _really_ needed to be 900 of them, right?
 
-A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save file directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save). Runs as a Docker container on the same machine as Cemu and is accessible from any browser on your local network.
+A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save). Runs as a Docker container on the same machine as Cemu and is accessible from any browser on your local network.
 
-A fixed sidebar on the left tracks your progress:
-
-#### Map Stats
+### Map Stats
 Each entry is color-coded, hoverable, and toggleable:
 
 | Metric | Color | Total |
@@ -25,12 +23,12 @@ Each metric row shows the stat label on the left and its count on the right, wit
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
 - **Player Position** places a glowing white marker on the map at your character's last saved location. When the save was made inside a shrine, the marker appears at the shrine's overworld entrance rather than its local interior coordinates (detected via the MAP save flag)
 
-#### Track Player
+### Track Player
 
 A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position every 10 seconds — keeping your character in view as you play, even if you manually pan the map between saves. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions.
 
-#### Player Stats
-Read directly from the save file — no game interaction required:
+### Player Stats
+Reads directly from the save files — no game interaction required:
 
 | Stat | Notes |
 |------|-------|
@@ -40,7 +38,7 @@ Read directly from the save file — no game interaction required:
 | Rupees | Current rupee count |
 | Motorcycle | Green = Master Cycle owned, Red = not yet |
 
-#### Icon Shapes
+### Icon Shapes
 Map icons use shape and color to indicate type:
 
 - **Circles** — Korok seeds (green) and Locations (orange)
@@ -51,7 +49,7 @@ Hovering over any map icon shows a floating label offset to the side of the pin.
 
 Scrolling the mouse wheel shows a brief zoom percentage indicator in the bottom-right corner of the map.
 
-A server status indicator and save file timestamp at the bottom of the sidebar show server reachability and when your save was last read.
+A server status indicator and save timestamp at the bottom of the sidebar show server reachability and when your save was last read.
 
 ### Live Data API
 
@@ -61,7 +59,7 @@ The viewer exposes a JSON endpoint that serves as a live data feed of your curre
 GET http://localhost:3000/api
 ```
 
-Since the server polls for save file changes every 10 seconds, this endpoint always reflects your most recent save — manual or auto-save — no game modification or plugin required. External systems can poll `/api` on any interval to react to changes in game state.
+Since the server polls the save files for changes every 10 seconds, this endpoint always reflects your most recent save — manual or auto-save — no game modification or plugin required. External systems can poll `/api` on any interval to react to changes in game state.
 
 ```json
 {
@@ -97,19 +95,19 @@ This data can serve as a live input feed for a wide range of external systems:
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
 
-Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based off of and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed as well as all of their [datamining research](https://github.com/MrCheeze/botw-tools).
+Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools).
 
 ## Docker Setup
 
-This application runs as a Docker container that automatically reads your Cemu save file and monitors it for changes, refreshing the map whenever you save in-game.
+This application runs as a Docker container that automatically reads your Cemu save files and monitors them for changes, refreshing the map whenever you save in-game.
 
 ### Requirements
 
-- Docker and Docker Compose running on the same machine as your Cemu save file (or with network access to it)
+- Docker and Docker Compose running on the same machine as your Cemu save files (or with network access to them)
 
 ### Setup
 
-1. Create a `server/.env` file to configure your Cemu save file path.
+1. Create a `server/.env` file to configure your Cemu save folder path.
 
    **If running Docker from WSL (Linux-style path):**
    ```
