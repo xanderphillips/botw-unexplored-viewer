@@ -168,6 +168,21 @@ SavegameEditor={
 		}
 
 		this.markMap( locationValues.notFound.locations, 'location' );
+
+		// Derive discovered locations (all locations minus not-found) and mark them
+		// internal_name is preserved as the waypoint id for future type-based filtering
+		var discoveredLocations = {};
+		for ( var _hash in locations ) {
+			var _loc = locations[ _hash ];
+			if ( !locationValues.notFound.locations[ _loc.internal_name ] ) {
+				discoveredLocations[ _loc.internal_name ] = {
+					display_name: _loc.display_name,
+					x: _loc.x,
+					y: _loc.y,
+				};
+			}
+		}
+		this.markMap( discoveredLocations, 'location-discovered' );
 		this.markMap( _discoveredShines, 'shrine' );
 		this.markMap( _completedShrinesMap, 'shrine-completed' );
 		this.markMap( towers, 'tower' );

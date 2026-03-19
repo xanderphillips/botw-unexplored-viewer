@@ -322,10 +322,11 @@ button.with-icon.file-load:before{background-position:-32px -48px;width:20px;hei
 	border-radius:2px;
 	font-size:0;
 }
-.dot-korok            { background:#00ff00; }
-.dot-location         { background:#ff6600; }
-.dot-shrine           { background:#00ffff; }
-.dot-shrine-completed { background:#ffff00; }
+.dot-korok               { background:#00ff00; }
+.dot-location            { background:#ff6600; }
+.dot-location-discovered { background:#ffcc00; }
+.dot-shrine              { background:#00ffff; }
+.dot-shrine-completed    { background:#ffff00; }
 .dot-tower            { background:#cc00ff; }
 .dot-divine-beast     { background:#ff2200; }
 .dot-player-position  { background:#ffffff; }
@@ -489,6 +490,11 @@ button.with-icon.file-load:before{background-position:-32px -48px;width:20px;hei
 }
 .shape-legend-icon.shape-circle{
 	border-radius:50%;
+}
+.shape-legend-icon.shape-square{
+	border-radius:0;
+	width:8px;
+	height:8px;
 }
 .shape-legend-icon.shape-diamond{
 	border-radius:0;
@@ -995,6 +1001,17 @@ button.no-text.with-icon:before{margin-right:0px}
 	background:lime;
 	border:1px solid green;
 	color:green;
+}
+
+/* Upright square waypoints — Discovered Locations */
+#map-container .waypoint.location-discovered{
+	background:#ffcc00;
+	border:1px solid #aa8800;
+	color:#aa8800;
+	border-radius:0;
+	width:8px;
+	height:8px;
+	transform:translate(-4px,-4px);
 }
 
 /* Diamond waypoints — Shrines, Towers, Divine Beasts, Warps */
