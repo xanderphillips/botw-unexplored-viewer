@@ -9,8 +9,9 @@ Each entry is color-coded, hoverable, and toggleable:
 
 | Metric | Color | Total |
 |--------|-------|-------|
-| Korok seeds | Green | 900 |
+| Korok seeds | Gold | 900 |
 | Locations | Orange | 226 |
+| Locations (Visited) | Teal | — |
 | Shrines Discovered | Cyan | 120 |
 | Shrines Completed | Yellow | 120 |
 | Towers | Violet | 15 |
@@ -21,6 +22,7 @@ Each metric row shows the stat label on the left and its count on the right, wit
 
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
+- **Locations (Visited)** shows a teal icon at each named location you have already discovered. Icons are type-specific — stables, villages, labs, the castle, shops, and generic checkpoints each use a distinct map icon sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Undiscovered locations appear as orange dots.
 - **Player Position** places a glowing white marker on the map at your character's last saved location. When the save was made inside a shrine, the marker appears at the shrine's overworld entrance rather than its local interior coordinates (detected via the MAP save flag)
 
 ### Track Player
@@ -38,12 +40,7 @@ Reads directly from the save files — no game interaction required:
 | Rupees | Current rupee count |
 | Motorcycle | Green = Master Cycle owned, Red = not yet |
 
-### Icon Shapes
-Map icons use shape and color to indicate type:
-
-- **Circles** — Korok seeds (green) and Locations (orange)
-- **Diamonds** — Shrines discovered (cyan), Shrines completed (yellow), Towers (violet), Divine Beasts (red), and other Warp Points
-- **Glowing circle** — Player position (white)
+### Map Icons
 
 Hovering over any map icon shows a floating label offset to the side of the pin. Labels are zoom-aware — they scale up when zoomed out to stay readable, and maintain a consistent gap from the pin at all zoom levels. Labels use a semi-transparent dark style so the map remains visible behind them. When the player is inside a shrine, the player marker label reads **Player (In Shrine)**.
 
@@ -95,7 +92,7 @@ This data can serve as a live input feed for a wide range of external systems:
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
 
-Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools).
+Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap).
 
 ## Docker Setup
 

@@ -322,13 +322,14 @@ button.with-icon.file-load:before{background-position:-32px -48px;width:20px;hei
 	border-radius:2px;
 	font-size:0;
 }
-.dot-korok            { background:#00ff00; }
-.dot-location         { background:#ff6600; }
-.dot-shrine           { background:#00ffff; }
-.dot-shrine-completed { background:#ffff00; }
-.dot-tower            { background:#cc00ff; }
-.dot-divine-beast     { background:#ff2200; }
-.dot-player-position  { background:#ffffff; }
+.dot-korok               { background:#C6B96F; }
+.dot-location            { background:#ff6600; }
+.dot-location-discovered { background:#00ffaa; }
+.dot-shrine              { background:#00ffff; }
+.dot-shrine-completed    { background:#ffff00; }
+.dot-tower               { background:#cc00ff; }
+.dot-divine-beast        { background:#ff2200; }
+.dot-player-position     { background:#ffffff; }
 
 #toolbar label .stat-subtitle{
 	display:inline;
@@ -368,7 +369,6 @@ button.with-icon.file-load:before{background-position:-32px -48px;width:20px;hei
 }
 .toolbar-section-title,
 .player-stats-title,
-.shape-legend-title,
 #save-timestamp-label{
 	width:fit-content;
 	border-bottom:1px solid rgba(150,150,150,0.35);
@@ -459,48 +459,6 @@ button.with-icon.file-load:before{background-position:-32px -48px;width:20px;hei
 .motorcycle-light.not-owned{
 	background-color:#c0392b;
 	box-shadow:0 0 4px rgba(192,57,43,0.6);
-}
-#shape-legend{
-	padding:10px 8px 8px;
-	border-top:1px solid rgba(201,169,89,0.15);
-	display:flex;
-	flex-direction:column;
-	gap:5px;
-}
-.shape-legend-title{
-	font-family:'Cinzel',serif;
-	font-size:11px;
-	font-weight:700;
-	color:var(--botw-text-muted);
-	text-transform:uppercase;
-	letter-spacing:0.5px;
-}
-.shape-legend-row{
-	display:flex;
-	align-items:center;
-	gap:8px;
-}
-.shape-legend-icon{
-	flex-shrink:0;
-	width:10px;
-	height:10px;
-	background:var(--botw-text-muted);
-	display:inline-block;
-}
-.shape-legend-icon.shape-circle{
-	border-radius:50%;
-}
-.shape-legend-icon.shape-diamond{
-	border-radius:0;
-	transform:rotate(45deg);
-	width:8px;
-	height:8px;
-}
-.shape-legend-label{
-	font-family:'Noto Sans',sans-serif;
-	font-size:9px;
-	color:var(--botw-text-muted);
-	white-space:nowrap;
 }
 #server-status{
 	margin-top:auto;
@@ -991,37 +949,40 @@ button.no-text.with-icon:before{margin-right:0px}
 	border-radius:50%;
 	transform:translate(-5px,-5px);
 }
-#map-container .waypoint.korok{
-	background:lime;
-	border:1px solid green;
-	color:green;
+/* SVG/PNG icon waypoints — shared base */
+#map-container .waypoint.korok,
+#map-container .waypoint.shrine,
+#map-container .waypoint.shrine-completed,
+#map-container .waypoint.tower,
+#map-container .waypoint.location-discovered{
+	background-color:transparent;
+	border:none;
+	border-radius:2px;
+	width:10px;
+	height:10px;
+	background-size:contain;
+	background-repeat:no-repeat;
+	background-position:center;
+	transform:translate(-5px,-5px);
+	opacity:0.625;
 }
+/* Colored rounded border ring matching sidebar — no filter, icons stay original colors */
+#map-container .waypoint.korok            { background-image:url('../icons/mapicon_korok.png');        box-shadow:0 0 0 1px #C6B96F; }
+#map-container .waypoint.shrine           { background-image:url('../icons/mapicon_dungeon.svg');      box-shadow:0 0 0 1px #00ffff; background-size:160%; }
+#map-container .waypoint.shrine-completed { background-image:url('../icons/mapicon_dungeon_dlc.svg'); box-shadow:0 0 0 1px #ffff00; background-size:160%; }
+#map-container .waypoint.tower            { background-image:url('../icons/mapicon_tower.svg');        box-shadow:0 0 0 1px #cc00ff; background-size:160%; }
 
-/* Diamond waypoints — Shrines, Towers, Divine Beasts, Warps */
-#map-container .waypoint.shrine{
-	background:#00ffff;
-	border:1px solid #007799;
-	color:#007799;
-	border-radius:0;
-	transform:translate(-2px,0px) rotate(45deg);
-	transform-origin:top right;
-}
-#map-container .waypoint.shrine-completed{
-	background:#ffff00;
-	border:1px solid #aaaa00;
-	color:#aaaa00;
-	border-radius:0;
-	transform:translate(-2px,0px) rotate(45deg);
-	transform-origin:top right;
-}
-#map-container .waypoint.tower{
-	background:#cc00ff;
-	border:1px solid #7700cc;
-	color:#7700cc;
-	border-radius:0;
-	transform:translate(-2px,0px) rotate(45deg);
-	transform-origin:top right;
-}
+/* Discovered location icons — teal border, original icon colors */
+#map-container .waypoint.location-discovered                                    { background-image:url('../icons/mapicon_checkpoint.svg'); box-shadow:0 0 0 1px #00ffaa; }
+#map-container .waypoint.location-discovered[data-location-type="hatago"]       { background-image:url('../icons/mapicon_hatago.svg'); }
+#map-container .waypoint.location-discovered[data-location-type="village"]      { background-image:url('../icons/mapicon_village.svg'); }
+#map-container .waypoint.location-discovered[data-location-type="labo"]         { background-image:url('../icons/mapicon_labo.svg'); }
+#map-container .waypoint.location-discovered[data-location-type="castle"]       { background-image:url('../icons/mapicon_castle.svg'); }
+#map-container .waypoint.location-discovered[data-location-type="shop_bougu"]   { background-image:url('../icons/mapicon_shop_bougu.svg'); }
+#map-container .waypoint.location-discovered[data-location-type="shop_jewel"]   { background-image:url('../icons/mapicon_shop_jewel.svg'); }
+#map-container .waypoint.location-discovered[data-location-type="shop_yorozu"]  { background-image:url('../icons/mapicon_shop_yorozu.svg'); }
+
+/* Diamond waypoints — Divine Beasts, Warps */
 #map-container .waypoint.divine-beast{
 	background:#ff2200;
 	border:1px solid #990000;
@@ -1056,8 +1017,7 @@ button.no-text.with-icon:before{margin-right:0px}
 
 /* Hover highlight ring — applied by setupToolbarHover() on mouseenter */
 #map-container .waypoint.highlighted{
-	box-shadow:0 0 0 2px rgba(255,255,255,0.95), 0 0 0 4px currentColor, 0 0 10px 3px currentColor;
-	filter:brightness(1.6);
+	box-shadow:0 0 0 2px rgba(255,255,255,0.95), 0 0 6px 3px rgba(255,255,255,0.6) !important;
 	z-index:10;
 }
 
