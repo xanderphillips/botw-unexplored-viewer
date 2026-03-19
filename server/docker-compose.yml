@@ -4,7 +4,12 @@ services:
       context: ..
       dockerfile: server/Dockerfile
     volumes:
-      - ${SAVE_PATH}:/app/data
+      - ${SAVE_PATH}/0/game_data.sav:/app/data/game_data_0.sav
+      - ${SAVE_PATH}/1/game_data.sav:/app/data/game_data_1.sav
+      - ${SAVE_PATH}/2/game_data.sav:/app/data/game_data_2.sav
+      - ${SAVE_PATH}/3/game_data.sav:/app/data/game_data_3.sav
+      - ${SAVE_PATH}/4/game_data.sav:/app/data/game_data_4.sav
+      - ${SAVE_PATH}/5/game_data.sav:/app/data/game_data_5.sav
     ports:
       - "3000:3000"
     container_name: botw-webserver

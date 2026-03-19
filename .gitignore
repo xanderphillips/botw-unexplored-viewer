@@ -2,4 +2,5 @@
 .claude/
 CLAUDE.md
 server/.env
+server/data/
 server/style-example.html
