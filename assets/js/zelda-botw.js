@@ -17,6 +17,7 @@ var locationValues = {};
 var shrines = {};
 var towers = {};
 var divineBeasts = {};
+var labos = {};
 var remainingWarps = {};
 var shrinesCompleted = 0;
 
@@ -171,19 +172,39 @@ SavegameEditor={
 
 		// Derive discovered locations (all locations minus not-found) and mark them.
 		// Assign a location_type based on internal_name for icon selection.
+		// Landmark types are always shown regardless of discovery state.
+		var _knownVillages = [
+			'Location_Hateno', 'Location_Kakariko', 'Location_Rito',
+			'Location_Goron', 'Location_Gerudo', 'Location_Taura',
+			'Location_UMiiVillage', 'Location_WhiteZora', 'Location_Cokiri'
+		];
+		var _knownSettlements = [
+			'Location_AdeyaVillage', 'Location_ChirakaVillage', 'Location_GarakishiVillage',
+			'Location_ShinyarkiVillage', 'Location_TabantaVillage', 'Location_RonronCity'
+		];
+		var landmarkTypes = ['hatago', 'village', 'settlement', 'great_fairy', 'goddess', 'castle', 'shop_bougu', 'shop_jewel', 'shop_yorozu', 'shop_color', 'yadoya'];
 		var discoveredLocations = {};
 		for ( var _hash in locations ) {
 			var _loc = locations[ _hash ];
-			if ( !locationValues.notFound.locations[ _loc.internal_name ] ) {
-				var _type = 'checkpoint';
-				var _n = _loc.internal_name;
-				if ( _n.indexOf('Hatago') !== -1 )       _type = 'hatago';
-				else if ( _n.indexOf('Village') !== -1 ) _type = 'village';
-				else if ( _n.indexOf('Labo') !== -1 )    _type = 'labo';
-				else if ( _n.indexOf('Castle') !== -1 )  _type = 'castle';
-				else if ( _n.indexOf('ShopBougu') !== -1 )  _type = 'shop_bougu';
-				else if ( _n.indexOf('ShopJewel') !== -1 )  _type = 'shop_jewel';
-				else if ( _n.indexOf('ShopYorozu') !== -1 ) _type = 'shop_yorozu';
+			var _type = 'checkpoint';
+			var _n = _loc.internal_name;
+			if ( _n.indexOf('Hatago') !== -1 )                                                                      _type = 'hatago';
+			else if ( _knownVillages.indexOf(_n) !== -1 )                                                           _type = 'village';
+			else if ( _knownSettlements.indexOf(_n) !== -1 )                                                        _type = 'settlement';
+			else if ( _n.indexOf('WeaponCureSpring') !== -1 )                                                       _type = 'great_fairy';
+			else if ( _n === 'Location_BraveFountain' || _n === 'Location_PowerFountain' || _n === 'Location_WisdomFountain' ) _type = 'goddess';
+			else if ( _n.indexOf('Labo') !== -1 )                                                                   _type = 'labo';
+			else if ( _n.indexOf('Castle') !== -1 )                                                                 _type = 'castle';
+			else if ( _n.indexOf('ShopBougu') !== -1 )                                                              _type = 'shop_bougu';
+			else if ( _n.indexOf('ShopJewel') !== -1 )                                                              _type = 'shop_jewel';
+			else if ( _n.indexOf('ShopYorozu') !== -1 )                                                             _type = 'shop_yorozu';
+			else if ( _n.indexOf('ShopColor') !== -1 )                                                              _type = 'shop_color';
+			else if ( _n.indexOf('ShopYadoya') !== -1 )                                                             _type = 'yadoya';
+
+			var isLandmark = landmarkTypes.indexOf( _type ) !== -1;
+			if ( !locationValues.notFound.locations[ _loc.internal_name ] || isLandmark ) {
+				// Remove from notFound so landmarks don't also render as orange dots
+				if ( isLandmark ) delete locationValues.notFound.locations[ _loc.internal_name ];
 				discoveredLocations[ _loc.internal_name ] = {
 					display_name: _loc.display_name,
 					x: _loc.x,
@@ -202,6 +223,7 @@ SavegameEditor={
 		this.markMap( _completedShrinesMap, 'shrine-completed' );
 		this.markMap( towers, 'tower' );
 		this.markMap( divineBeasts, 'divine-beast' );
+		this.markMap( labos, 'labo' );
 		this.markMap( remainingWarps, 'warp' );
 		this.markMap( locationValues.notFound.koroks, 'korok' );
 
@@ -238,6 +260,7 @@ SavegameEditor={
 
 		addWaypointListeners();
 		applyHiddenStates();
+		applyServiceHiddenStates();
 
 	},
 
@@ -399,6 +422,9 @@ window.addEventListener('load',function(){
 			towers[_warpHash] = warps[_warpHash];
 		} else if (warps[_warpHash].internal_name.indexOf('Location_Remains') === 0) {
 			divineBeasts[_warpHash] = warps[_warpHash];
+		} else if (warps[_warpHash].internal_name.indexOf('Location_AncientLabo') === 0 ||
+		           warps[_warpHash].internal_name.indexOf('Location_HatenoLabo') === 0) {
+			labos[_warpHash] = warps[_warpHash];
 		} else {
 			remainingWarps[_warpHash] = warps[_warpHash];
 		}
@@ -447,6 +473,7 @@ window.addEventListener('load',function(){
 
 	// Set up toolbar hover highlighting — labels are always in DOM
 	setupToolbarHover();
+	setupServiceToggles();
 
 	// Initial load
 	loadSaveFromServer();
@@ -553,6 +580,7 @@ window.addEventListener('load',function(){
 		SavegameEditor.markMap( shrines, 'shrine' );
 		SavegameEditor.markMap( towers, 'tower' );
 		SavegameEditor.markMap( divineBeasts, 'divine-beast' );
+		SavegameEditor.markMap( labos, 'labo' );
 		SavegameEditor.markMap( remainingWarps, 'warp' );
 		SavegameEditor.markMap( locationValues.notFound.koroks, 'korok' );
 
@@ -562,10 +590,54 @@ window.addEventListener('load',function(){
 
 		addWaypointListeners();
 		applyHiddenStates();
+		applyServiceHiddenStates();
 
 	} );
 
+	initRegionLabels();
+
 }, false);
+
+// Render region name labels on the map at zoom-appropriate detail levels.
+// level 0 = main regions (zoomed out), level 1 = broad areas, level 2 = sub-regions.
+function initRegionLabels() {
+	if (!window.regionLabels || !window.MapView) return;
+	var container = document.getElementById('map-container');
+	if (!container) return;
+
+	// Screen-pixel font size for each level (divided by scale to stay constant on screen)
+	var screenSizes = { 0: 22, 1: 18, 2: 16, 3: 16, 4: 14 };
+
+	var items = [];
+	window.regionLabels.forEach(function(r) {
+		var el = document.createElement('div');
+		el.className = 'region-label region-level-' + r.level;
+		el.textContent = r.name;
+		el.style.left = (3000 + r.x / 2) + 'px';
+		el.style.top  = (2500 + r.z / 2) + 'px';
+		el.style.display = 'none';
+		container.appendChild(el);
+		items.push({ el: el, level: r.level });
+	});
+
+	function update(scale, minZoom, maxZoom) {
+		var pct = maxZoom > minZoom ? (scale - minZoom) / (maxZoom - minZoom) : 0;
+		items.forEach(function(item) {
+			var visible;
+			if      (item.level === 0) visible = pct <= 0.35;
+			else if (item.level === 1) visible = pct >= 0.10 && pct <= 0.65;
+			else if (item.level === 2) visible = pct >= 0.30 && pct <= 0.80;
+			else if (item.level === 3) visible = pct >= 0.50;
+			else                       visible = pct >= 0.70;
+			item.el.style.display = visible ? '' : 'none';
+			if (visible) item.el.style.fontSize = (screenSizes[item.level] / scale) + 'px';
+		});
+	}
+
+	window.MapView.onZoom(update);
+	var zi = window.MapView.getZoomInfo();
+	update(zi.scale, zi.minZoom, zi.maxZoom);
+}
 
 // Toolbar label hover — highlight matching map icons
 function setupToolbarHover() {
@@ -632,6 +704,57 @@ function applyHiddenStates() {
 	} );
 }
 
+// Service type toggles — sub-filters within location-discovered by data-location-type
+function setupServiceToggles() {
+	[].forEach.call( document.querySelectorAll( '#services-section label[data-service]' ), function( label ) {
+		var svcType = label.getAttribute( 'data-service' );
+		var storageKey = 'botw-svc-hidden-' + svcType;
+
+		// Restore persisted hidden state
+		if ( localStorage.getItem( storageKey ) === 'true' ) {
+			label.setAttribute( 'data-hidden', 'true' );
+		}
+
+		label.addEventListener( 'mouseenter', function() {
+			[].forEach.call( document.querySelectorAll( '.waypoint.location-discovered[data-location-type="' + svcType + '"]' ), function( wp ) {
+				wp.classList.add( 'highlighted' );
+			} );
+		} );
+		label.addEventListener( 'mouseleave', function() {
+			[].forEach.call( document.querySelectorAll( '.waypoint.highlighted' ), function( wp ) {
+				wp.classList.remove( 'highlighted' );
+			} );
+		} );
+		label.addEventListener( 'click', function() {
+			var isHidden = label.getAttribute( 'data-hidden' ) === 'true';
+			if ( isHidden ) {
+				label.removeAttribute( 'data-hidden' );
+				localStorage.removeItem( storageKey );
+				[].forEach.call( document.querySelectorAll( '.waypoint.location-discovered[data-location-type="' + svcType + '"]' ), function( wp ) {
+					wp.style.display = '';
+				} );
+			} else {
+				label.setAttribute( 'data-hidden', 'true' );
+				localStorage.setItem( storageKey, 'true' );
+				[].forEach.call( document.querySelectorAll( '.waypoint.location-discovered[data-location-type="' + svcType + '"]' ), function( wp ) {
+					wp.style.display = 'none';
+				} );
+			}
+		} );
+	} );
+}
+
+// Re-apply service hidden states after waypoints are recreated on reload
+function applyServiceHiddenStates() {
+	[].forEach.call( document.querySelectorAll( '#services-section label[data-hidden="true"]' ), function( label ) {
+		var svcType = label.getAttribute( 'data-service' );
+		[].forEach.call( document.querySelectorAll( '.waypoint.location-discovered[data-location-type="' + svcType + '"]' ), function( wp ) {
+			wp.style.display = 'none';
+		} );
+	} );
+}
+
+
 // Add event Listeners for Waypoints
 function addWaypointListeners() {
 
@@ -674,6 +797,7 @@ function showWaypointTooltip( waypoint ) {
 	               waypoint.classList.contains( 'shrine-completed' ) ||
 	               waypoint.classList.contains( 'tower' ) ||
 	               waypoint.classList.contains( 'korok' ) ||
+	               waypoint.classList.contains( 'labo' ) ||
 	               waypoint.classList.contains( 'location-discovered' );
 
 	var scale = parseFloat( getComputedStyle( document.documentElement ).getPropertyValue( '--map-scale' ) ) || 1;
@@ -828,6 +952,7 @@ function setMotorcycleIndicator(owned) {
 	var minZoom = 1;
 	var maxZoom = 1;
 	var zoomLabelTimer = null;
+	var _zoomListeners = [];
 
 	// Show the zoom percentage label briefly, then fade it out after 3s.
 	// 0% = fully zoomed out (minZoom), 100% = fully zoomed in (maxZoom).
@@ -961,6 +1086,7 @@ function setMotorcycleIndicator(owned) {
 
 		mapContainer.style.transform = 'translate(' + panX + 'px, ' + panY + 'px) scale(' + scale + ')';
 		document.documentElement.style.setProperty('--map-scale', scale);
+		_zoomListeners.forEach(function(cb) { cb(scale, minZoom, maxZoom); });
 	}
 
 	// Expose map controls for external use (e.g. Track Player)
@@ -1006,6 +1132,10 @@ function setMotorcycleIndicator(owned) {
 				}, 1250);
 			});
 		},
+		// Register a callback fired on every zoom/pan transform update: cb(scale, minZoom, maxZoom)
+		onZoom: function(cb) { _zoomListeners.push(cb); },
+		// Returns current zoom state for external consumers
+		getZoomInfo: function() { return { scale: scale, minZoom: minZoom, maxZoom: maxZoom }; },
 		// Returns the zoom level used by Track Player: 15% into the full zoom range,
 		// ensuring the map is always larger than the viewport so centering works.
 		getTrackZoom: function() {

@@ -40,6 +40,16 @@ Reads directly from the save files — no game interaction required:
 | Rupees | Current rupee count |
 | Motorcycle | Green = Master Cycle owned, Red = not yet |
 
+### Map Labels
+
+Region names are rendered as text overlays directly on the map and appear at zoom-appropriate levels:
+
+- **Zoomed out** — 15 main tower regions (Hebra, Akkala, Lanayru, etc.) in large uppercase text
+- **Medium zoom** — 8 broad named regions (Central Hyrule, Necluda, Faron, etc.)
+- **Zoomed in** — 24 sub-regions and areas (Hyrule Field, Eldin Mountains, Gerudo Desert, etc.)
+
+Labels scale inversely with zoom so they remain a consistent size on screen. Coordinate and name data sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar).
+
 ### Map Icons
 
 Hovering over any map icon shows a floating label offset to the side of the pin. Labels are zoom-aware — they scale up when zoomed out to stay readable, and maintain a consistent gap from the pin at all zoom levels. Labels use a semi-transparent dark style so the map remains visible behind them. When the player is inside a shrine, the player marker label reads **Player (In Shrine)**.
@@ -92,7 +102,7 @@ This data can serve as a live input feed for a wide range of external systems:
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
 
-Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap).
+Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Region label coordinates and English place names sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar).
 
 ## Docker Setup
 
