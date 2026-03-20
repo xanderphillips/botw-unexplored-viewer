@@ -23,6 +23,10 @@ Each metric row shows the stat label on the left and its count on the right, wit
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
 - **Locations (Visited)** shows a teal icon at each named location you have already discovered. Icons are type-specific — stables, villages, labs, the castle, shops, and generic checkpoints each use a distinct map icon sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Undiscovered locations appear as orange dots.
+
+### Services
+
+A **Services** section in the sidebar lists nine location subtypes that can be toggled independently: Stable, Village, Settlement, Great Fairy, Goddess Statue, Inn, General Store, Armor Shop, Dye Shop, and Arrow Shop. Each toggle shows or hides that icon type on the map and persists its state across browser sessions. Services are a sub-filter of Locations (Visited) — only discovered locations of the selected types are shown.
 - **Player Position** places a glowing white marker on the map at your character's last saved location. When the save was made inside a shrine, the marker appears at the shrine's overworld entrance rather than its local interior coordinates (detected via the MAP save flag)
 
 ### Track Player
