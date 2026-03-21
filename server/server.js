@@ -5,15 +5,11 @@
  *   - Serve static frontend files (HTML, CSS, JS, map image)
  *   - Proxy the Cemu save file to the browser via /data/game_data.sav
  *   - Expose /api/mtime so the browser can poll for save file changes
- *   - Expose /api/state/* for authenticated UI state management
- *   - Expose /api/config for browser API key bootstrap
+ *   - Expose /api/state/* for UI state management
  *   - Parse save file metrics server-side and expose them via /api (debug)
  *
  * Save file path is configured via SAVE_PATH in server/.env, mounted
  * into the container at /app/data/game_data.sav.
- *
- * Authentication: all /api/state/* endpoints require the X-API-Key header
- * matching the API_KEY environment variable from server/.env.
  */
 'use strict';
 
@@ -50,21 +46,6 @@ function getMostRecentSave(callback) {
     });
 }
 
-// Auth middleware — requires X-API-Key header matching API_KEY env var.
-// If API_KEY is not configured, all state endpoints return 503.
-function requireApiKey(req, res, next) {
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) {
-        res.status(503).json({ ok: false, error: 'API_KEY not configured on server' });
-        return;
-    }
-    if (req.headers['x-api-key'] !== apiKey) {
-        res.status(401).json({ ok: false, error: 'Invalid or missing X-API-Key header' });
-        return;
-    }
-    next();
-}
-
 // Serve static files from app directory (where Dockerfile copies them)
 app.use(express.static(__dirname));
 
@@ -95,13 +76,6 @@ app.get('/api/mtime', (req, res) => {
         res.setHeader('Cache-Control', 'no-store');
         res.json({ mtime, stateVersion: readState().stateVersion || 0 });
     });
-});
-
-// Config endpoint — returns the API key for browser bootstrap.
-// No auth required: the key itself is the credential.
-// Safe for LAN-only deployment.
-app.get('/api/config', (req, res) => {
-    res.json({ apiKey: process.env.API_KEY || null });
 });
 
 // ── SSE push ──────────────────────────────────────────────────────────────────
@@ -154,22 +128,22 @@ app.get('/api/events', (req, res) => {
 });
 
 // ── State API ─────────────────────────────────────────────────────────────────
-// All endpoints require X-API-Key. All return { ok, state } on success.
+// All endpoints return { ok, state } on success.
 
 // GET /api/state — return full state
-app.get('/api/state', requireApiKey, (req, res) => {
+app.get('/api/state', (req, res) => {
     res.json({ ok: true, state: readState() });
 });
 
 // PUT /api/state — replace full state (used for bulk sync from client)
-app.put('/api/state', requireApiKey, (req, res) => {
+app.put('/api/state', (req, res) => {
     const next = writeStateAndBroadcast(req.body || {});
     res.json({ ok: true, state: next });
 });
 
 // PATCH /api/state/hidden-types — toggle icon type visibility
 // Body: { type: string, hidden: boolean }
-app.patch('/api/state/hidden-types', requireApiKey, (req, res) => {
+app.patch('/api/state/hidden-types', (req, res) => {
     const { type, hidden } = req.body || {};
     if (typeof type !== 'string' || typeof hidden !== 'boolean') {
         res.status(400).json({ ok: false, error: 'Body must include type (string) and hidden (boolean)' });
@@ -183,7 +157,7 @@ app.patch('/api/state/hidden-types', requireApiKey, (req, res) => {
 
 // PATCH /api/state/hidden-services — toggle service filter visibility
 // Body: { service: string, hidden: boolean }
-app.patch('/api/state/hidden-services', requireApiKey, (req, res) => {
+app.patch('/api/state/hidden-services', (req, res) => {
     const { service, hidden } = req.body || {};
     if (typeof service !== 'string' || typeof hidden !== 'boolean') {
         res.status(400).json({ ok: false, error: 'Body must include service (string) and hidden (boolean)' });
@@ -198,7 +172,7 @@ app.patch('/api/state/hidden-services', requireApiKey, (req, res) => {
 // PATCH /api/state/test-mode — show or hide the testing banner in the browser
 // Body: { enabled: boolean, phase?: string }
 // When enabled, testMode stores the phase label shown in the banner.
-app.patch('/api/state/test-mode', requireApiKey, (req, res) => {
+app.patch('/api/state/test-mode', (req, res) => {
     const { enabled, phase } = req.body || {};
     if (typeof enabled !== 'boolean') {
         res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
@@ -210,7 +184,7 @@ app.patch('/api/state/test-mode', requireApiKey, (req, res) => {
 
 // PATCH /api/state/player-position — override player position for testing
 // Body: { x: number, z: number }  (BotW world coordinates)
-app.patch('/api/state/player-position', requireApiKey, (req, res) => {
+app.patch('/api/state/player-position', (req, res) => {
     const { x, z } = req.body || {};
     if (typeof x !== 'number' || typeof z !== 'number') {
         res.status(400).json({ ok: false, error: 'Body must include x and z (numbers)' });
@@ -220,49 +194,49 @@ app.patch('/api/state/player-position', requireApiKey, (req, res) => {
 });
 
 // DELETE /api/state/player-position — clear player position override
-app.delete('/api/state/player-position', requireApiKey, (req, res) => {
+app.delete('/api/state/player-position', (req, res) => {
     res.json({ ok: true, state: writeStateAndBroadcast({ playerPositionOverride: null }) });
 });
 
 // PUT /api/state/stat-overrides — override stat display values for testing
 // Body: { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } (all optional numbers)
-app.put('/api/state/stat-overrides', requireApiKey, (req, res) => {
+app.put('/api/state/stat-overrides', (req, res) => {
     const { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } = req.body || {};
     res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } }) });
 });
 
 // DELETE /api/state/stat-overrides — clear stat overrides
-app.delete('/api/state/stat-overrides', requireApiKey, (req, res) => {
+app.delete('/api/state/stat-overrides', (req, res) => {
     res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: null }) });
 });
 
 // PUT /api/state/player-stat-overrides — override player stat display values for testing
 // Body: { hearts, stamina, playtime, rupees, motorcycle } (all optional)
-app.put('/api/state/player-stat-overrides', requireApiKey, (req, res) => {
+app.put('/api/state/player-stat-overrides', (req, res) => {
     const { hearts, stamina, playtime, rupees, motorcycle } = req.body || {};
     res.json({ ok: true, state: writeStateAndBroadcast({ playerStatOverrides: { hearts, stamina, playtime, rupees, motorcycle } }) });
 });
 
 // DELETE /api/state/player-stat-overrides — clear player stat overrides
-app.delete('/api/state/player-stat-overrides', requireApiKey, (req, res) => {
+app.delete('/api/state/player-stat-overrides', (req, res) => {
     res.json({ ok: true, state: writeStateAndBroadcast({ playerStatOverrides: null }) });
 });
 
 // PUT /api/state/server-status-override — override server status dot and timestamp display
 // Body: { timestamp: number (ms), online: boolean }
-app.put('/api/state/server-status-override', requireApiKey, (req, res) => {
+app.put('/api/state/server-status-override', (req, res) => {
     const { timestamp, online } = req.body || {};
     res.json({ ok: true, state: writeStateAndBroadcast({ serverStatusOverride: { timestamp, online } }) });
 });
 
 // DELETE /api/state/server-status-override — clear server status override
-app.delete('/api/state/server-status-override', requireApiKey, (req, res) => {
+app.delete('/api/state/server-status-override', (req, res) => {
     res.json({ ok: true, state: writeStateAndBroadcast({ serverStatusOverride: null }) });
 });
 
 // PATCH /api/state/track-player — enable or disable player position tracking
 // Body: { enabled: boolean }
-app.patch('/api/state/track-player', requireApiKey, (req, res) => {
+app.patch('/api/state/track-player', (req, res) => {
     const { enabled } = req.body || {};
     if (typeof enabled !== 'boolean') {
         res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
@@ -273,7 +247,7 @@ app.patch('/api/state/track-player', requireApiKey, (req, res) => {
 
 // PATCH /api/state/track-zoom — set player tracking zoom level
 // Body: { zoom: number (5–90) }
-app.patch('/api/state/track-zoom', requireApiKey, (req, res) => {
+app.patch('/api/state/track-zoom', (req, res) => {
     const { zoom } = req.body || {};
     if (typeof zoom !== 'number' || zoom < 5 || zoom > 90) {
         res.status(400).json({ ok: false, error: 'Body must include zoom (number, 5–90)' });
@@ -284,14 +258,14 @@ app.patch('/api/state/track-zoom', requireApiKey, (req, res) => {
 
 // PATCH /api/state/map-view — set map pan/zoom viewport
 // Body: { scale: number|null, panX: number|null, panY: number|null }
-app.patch('/api/state/map-view', requireApiKey, (req, res) => {
+app.patch('/api/state/map-view', (req, res) => {
     const { scale, panX, panY } = req.body || {};
     res.json({ ok: true, state: writeStateAndBroadcast({ mapView: { scale, panX, panY } }) });
 });
 
 // POST /api/state/dismissed — mark a waypoint as manually dismissed
 // Body: { type: 'korok'|'location', name: string }
-app.post('/api/state/dismissed', requireApiKey, (req, res) => {
+app.post('/api/state/dismissed', (req, res) => {
     const { type, name } = req.body || {};
     if ((type !== 'korok' && type !== 'location') || typeof name !== 'string') {
         res.status(400).json({ ok: false, error: 'Body must include type ("korok"|"location") and name (string)' });
@@ -309,7 +283,7 @@ app.post('/api/state/dismissed', requireApiKey, (req, res) => {
 
 // DELETE /api/state/dismissed — restore a dismissed waypoint
 // Body: { type: 'korok'|'location', name: string }
-app.delete('/api/state/dismissed', requireApiKey, (req, res) => {
+app.delete('/api/state/dismissed', (req, res) => {
     const { type, name } = req.body || {};
     if ((type !== 'korok' && type !== 'location') || typeof name !== 'string') {
         res.status(400).json({ ok: false, error: 'Body must include type ("korok"|"location") and name (string)' });
@@ -327,7 +301,7 @@ app.delete('/api/state/dismissed', requireApiKey, (req, res) => {
 
 // DELETE /api/state/dismissed/all — clear all dismissed waypoints
 // Called when save file mtime changes (new game state supersedes UI overlay)
-app.delete('/api/state/dismissed/all', requireApiKey, (req, res) => {
+app.delete('/api/state/dismissed/all', (req, res) => {
     res.json({
         ok: true,
         state: writeStateAndBroadcast({ dismissedWaypoints: { koroks: [], locations: [] } })
@@ -525,7 +499,7 @@ if (process.env.DEBUG) app.get('/api', (req, res) => {
 // POST /api/test/run — run the full server-side UI test suite
 // Long-running (~30s); broadcasts SSE updates throughout so the browser animates live.
 let _testRunning = false;
-app.post('/api/test/run', requireApiKey, async (req, res) => {
+app.post('/api/test/run', async (req, res) => {
     if (_testRunning) {
         res.status(409).json({ ok: false, error: 'Test already running' });
         return;
