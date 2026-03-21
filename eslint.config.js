@@ -6,7 +6,7 @@ module.exports = [
     {
         ...js.configs.recommended,
         languageOptions: {
-            ecmaVersion: 2015,
+            ecmaVersion: 2020,
             globals: {
                 ...globals.browser
             }

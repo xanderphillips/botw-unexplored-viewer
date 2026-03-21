@@ -18,7 +18,7 @@ Each entry is color-coded, hoverable, and toggleable:
 | Divine Beasts | Red | 4 |
 | Player Position | White | — |
 
-Each metric row shows the stat label on the left and its count on the right, with a color bar below. The sidebar remembers which categories you have toggled off between sessions.
+Each metric row shows the stat label on the left and its count on the right, with a color bar below. All UI state (visible categories, service filters, track player, zoom level, dismissed waypoints, map view) is persisted server-side and restored on every page load.
 
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
@@ -26,12 +26,12 @@ Each metric row shows the stat label on the left and its count on the right, wit
 
 ### Services
 
-A **Services** section in the sidebar lists nine location subtypes that can be toggled independently: Stable, Village, Settlement, Great Fairy, Goddess Statue, Inn, General Store, Armor Shop, Dye Shop, and Arrow Shop. Each toggle shows or hides that icon type on the map and persists its state across browser sessions. Services are a sub-filter of Locations (Visited) — only discovered locations of the selected types are shown.
+A **Services** section in the sidebar lists nine location subtypes that can be toggled independently: Stable, Village, Settlement, Great Fairy, Goddess Statue, Inn, General Store, Armor Shop, and Jewelry Shop. Each toggle shows or hides that icon type on the map and persists its state across browser sessions. Services are a sub-filter of Locations (Visited) — only discovered locations of the selected types are shown.
 - **Player Position** places a glowing white marker on the map at your character's last saved location. When the save was made inside a shrine, the marker appears at the shrine's overworld entrance rather than its local interior coordinates (detected via the MAP save flag)
 
 ### Track Player
 
-A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position every 10 seconds — keeping your character in view as you play, even if you manually pan the map between saves. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions.
+A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position whenever the save file is updated — keeping your character in view after each manual or auto-save. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions. The track player toggle and zoom level are also controllable via the state API.
 
 ### Player Stats
 Reads directly from the save files — no game interaction required:
@@ -50,7 +50,7 @@ Region names are rendered as text overlays directly on the map and appear at zoo
 
 - **Zoomed out** — 15 main tower regions (Hebra, Akkala, Lanayru, etc.) in large uppercase text
 - **Medium zoom** — 8 broad named regions (Central Hyrule, Necluda, Faron, etc.)
-- **Zoomed in** — 24 sub-regions and areas (Hyrule Field, Eldin Mountains, Gerudo Desert, etc.)
+- **Zoomed in** — 23 sub-regions and areas (Hyrule Field, Eldin Mountains, Gerudo Desert, etc.), with further fine-grained place names appearing at higher zoom levels
 
 Labels scale inversely with zoom so they remain a consistent size on screen. Coordinate and name data sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar).
 
@@ -96,13 +96,74 @@ Since the server polls the save files for changes every 10 seconds, this endpoin
 }
 ```
 
-This data can serve as a live input feed for a wide range of external systems:
+The save-file data can serve as a live input feed for a wide range of external systems:
 
 - **Stream overlays** — display live completion stats or player coordinates in OBS or browser-source overlays
 - **Discord bots** — post milestone notifications when a Korok seed count or shrine count crosses a threshold
 - **Home automation** — trigger lighting scenes or alerts based on game progress
 - **Spreadsheets / logging** — poll on a cron schedule and append rows to track progress over a play session
 - **Webhooks and pipelines** — feed into any HTTP-based automation tool (Zapier, n8n, Home Assistant, etc.)
+
+### State API
+
+Every piece of UI state can be read and written via a REST API. This lets external tools, scripts, or overlays control the viewer programmatically — the browser UI is just one client.
+
+#### Bootstrap
+
+```
+GET /api/state   → { ok, state }
+```
+
+#### Map View
+
+```
+PATCH /api/state/map-view   { scale, panX, panY }   (null resets to default)
+```
+
+#### Track Player
+
+```
+PATCH /api/state/track-player   { enabled: true|false }
+PATCH /api/state/track-zoom     { zoom: 5–90 }
+```
+
+#### Icon Visibility
+
+```
+PATCH /api/state/hidden-types     { type, hidden: true|false }
+PATCH /api/state/hidden-services  { service, hidden: true|false }
+```
+
+Valid `type` values: `korok`, `location`, `location-discovered`, `shrine`, `shrine-completed`, `tower`, `divine-beast`, `labo`, `warp`, `player-position`
+
+Valid `service` values: `hatago`, `village`, `settlement`, `great_fairy`, `goddess`, `yadoya`, `shop_yorozu`, `shop_bougu`, `shop_jewel`
+
+#### Dismissed Waypoints
+
+```
+POST   /api/state/dismissed       { type: "korok"|"location", name }
+DELETE /api/state/dismissed/all
+```
+
+#### Test Runner
+
+```
+POST /api/test/run
+```
+
+Triggers the server-side UI test suite. The server animates all API-controllable state in five phases — sidebar toggles, map stat sweeps, player stat sweeps, last-update timestamp and status light, player tracking and quadrant moves — broadcasting each change via SSE so the browser reflects every step in real time. Returns `{ ok, results }` when complete and automatically restores all state to pre-test values.
+
+#### Real-time Updates (SSE)
+
+```
+GET /api/events   (no auth required)
+```
+
+The browser subscribes to this Server-Sent Events stream. Any API write immediately pushes a `state-change` event to all connected browsers, so the UI reflects changes without waiting for the 10-second poll cycle. A `reload-save` event triggers the browser to re-fetch and re-parse the save file, used after the test runner completes to restore live save data.
+
+#### Audio Feedback
+
+The browser plays a short oscillator tone whenever key state changes arrive via SSE — distinct pitches for map stat changes, player stat changes, sidebar items being shown or hidden, and last-update/status changes. Tones are generated entirely via the Web Audio API (no audio files). During test runs the envelope is shortened to a staccato click so rapid sweeps don't produce overlapping sounds.
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
 
@@ -118,7 +179,7 @@ This application runs as a Docker container that automatically reads your Cemu s
 
 ### Setup
 
-1. Create a `server/.env` file to configure your Cemu save folder path.
+1. Create a `server/.env` file to configure your Cemu save folder path and API key.
 
    **If running Docker from WSL (Linux-style path):**
    ```

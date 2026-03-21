@@ -9,8 +9,10 @@ COPY server/package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy server.js (from server/ directory relative to build context)
+# Copy server files (from server/ directory relative to build context)
 COPY server/server.js ./
+COPY server/state.js ./
+COPY server/test.js ./
 
 # Copy static files from parent directory
 COPY index.html ./

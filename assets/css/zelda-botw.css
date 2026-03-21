@@ -395,6 +395,27 @@ button.with-icon.file-load:before {
     margin-right: 8px;
 }
 
+/* test mode banner */
+#test-banner {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #c0000a;
+    color: #fff;
+    font-family: 'Noto Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-align: center;
+    padding: 3px 0;
+    z-index: 9999;
+}
+body.test-mode #test-banner {
+    display: block;
+}
+
 /* header+toolbar+footer */
 #header {
     color: var(--botw-text);
