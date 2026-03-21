@@ -376,6 +376,7 @@ SavegameEditor = {
 
         applyHiddenStates();
         applyServiceHiddenStates();
+        _saveHashMap = null; // release after load completes — rebuilt on next load
     },
 
     // based on the load() method in https://github.com/marcrobledo/savegame-editors/blob/master/zelda-botw-master/zelda-botw-master.js
