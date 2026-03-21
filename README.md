@@ -171,6 +171,47 @@ The browser plays a short oscillator tone whenever key state changes arrive via 
 
 Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Region label coordinates and English place names sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar). Original extension work by Eric Defore, on whose foundation this project was built.
 
+## Windows Executable
+
+The easiest way to run the viewer on Windows — no Docker, no Node.js installation required.
+
+### Requirements
+
+- Windows 10 or later (x64)
+- Cemu emulator with at least one save file present
+
+### Setup
+
+1. Download `botw-live-savegame-monitor.exe` from [Releases](../../releases).
+
+2. Place it anywhere (e.g. `C:\botw-monitor\`).
+
+3. Run `botw-live-savegame-monitor.exe`.
+
+4. On first launch a folder picker dialog appears. Navigate to your Cemu save folder — the one containing `0/`, `1/`, `2/` subfolders. The default location is:
+   ```
+   C:\Users\<YourUsername>\AppData\Roaming\Cemu\mlc01\usr\save\00050000\101c9400\user\80000001
+   ```
+   Select that folder and click OK.
+
+5. The viewer auto-detects an available port (8080, 8081, or 3000) and opens your browser automatically.
+
+### Reconfigure
+
+To change the save path or port, run:
+```
+botw-live-savegame-monitor.exe --setup
+```
+
+### Notes
+
+- **SmartScreen warning**: Windows may show "Windows protected your PC" on first run because the exe is unsigned. Click **More info → Run anyway** to proceed.
+- The exe is fully self-contained — all assets are bundled inside it (~40–50 MB).
+- Configuration is saved at `%APPDATA%\botw-live-savegame-monitor\config.json`.
+- UI state (visible categories, dismissed waypoints, map position, etc.) persists between runs.
+
+---
+
 ## Docker Setup
 
 This application runs as a Docker container that automatically reads your Cemu save files and monitors them for changes, refreshing the map whenever you save in-game.

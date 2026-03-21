@@ -19,14 +19,23 @@ const path = require('path');
 const { readState, writeState } = require('./state');
 
 const app = express();
-const PORT = 3000;
+const PORT = parseInt(process.env.PORT, 10) || 3000;
+
+// When running as a Windows exe (via launcher.js), STATIC_ROOT is set to the
+// directory containing the exe so static assets are served from alongside it.
+// In Docker __dirname is /app and all static files are copied there.
+const STATIC_ROOT = process.env.STATIC_ROOT || __dirname;
 
 app.use(express.json());
 
-// All six save slots: 0 = manual save, 1–5 = auto-saves
-const SAVE_SLOTS = Array.from({ length: 6 }, (_, i) =>
-    path.join(__dirname, `data/game_data_${i}.sav`)
-);
+// All six save slots: 0 = manual save, 1–5 = auto-saves.
+// When SAVE_PATH_BASE is set (Windows exe), slots are resolved as
+// <SAVE_PATH_BASE>/<i>/game_data.sav (matching Cemu's layout).
+const SAVE_SLOTS = process.env.SAVE_PATH_BASE
+    ? Array.from({ length: 6 }, (_, i) =>
+          path.join(process.env.SAVE_PATH_BASE, String(i), 'game_data.sav'))
+    : Array.from({ length: 6 }, (_, i) =>
+          path.join(__dirname, `data/game_data_${i}.sav`));
 
 // Find the most recently modified save slot.
 // Calls callback(filePath, mtimeMs) with the winner, or callback(null, null) if none are readable.
@@ -46,8 +55,8 @@ function getMostRecentSave(callback) {
     });
 }
 
-// Serve static files from app directory (where Dockerfile copies them)
-app.use(express.static(__dirname));
+// Serve static files from STATIC_ROOT (see definition above)
+app.use(express.static(STATIC_ROOT));
 
 // Serve the most recently modified save slot
 app.get('/data/game_data.sav', (req, res) => {
@@ -313,7 +322,7 @@ app.delete('/api/state/dismissed/all', (req, res) => {
 // Parse map-locations.js to extract hash → internal_name tables for each category
 function loadMapHashes() {
     const content = fs.readFileSync(
-        path.join(__dirname, 'assets/js/map-locations.js'),
+        path.join(STATIC_ROOT, 'assets/js/map-locations.js'),
         'utf8'
     );
 
@@ -353,8 +362,15 @@ function loadMapHashes() {
     };
 }
 
-// Cache map hashes at startup — map-locations.js never changes at runtime
-const cachedMapHashes = loadMapHashes();
+// Cache map hashes at startup — map-locations.js never changes at runtime.
+// Non-fatal: if assets aren't present (e.g. bare exe without extracted zip)
+// the server still starts; only the /api debug endpoint will be unavailable.
+let cachedMapHashes;
+try {
+    cachedMapHashes = loadMapHashes();
+} catch {
+    cachedMapHashes = null;
+}
 
 // Scan save buffer for found/total counts of a hash table
 // A flag is "found" when its value field (offset+4) is non-zero
@@ -459,6 +475,7 @@ function parseSaveMetrics(buf) {
 
     // Location flag scans — mirror the sidebar metrics
     try {
+        if (!cachedMapHashes) throw new Error('map-locations.js not loaded');
         const map = cachedMapHashes;
         metrics.locations = scanFlags(buf, r.u32, map.locations);
         metrics.locations.total = 226; // hardcoded per game sources (matches sidebar)
