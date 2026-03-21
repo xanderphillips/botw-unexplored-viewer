@@ -21,6 +21,43 @@ var divineBeasts = {};
 var labos = {};
 var remainingWarps = {};
 var shrinesCompleted = 0;
+var totalShrines = 0;
+var totalTowers = 0;
+var totalDivineBeasts = 0;
+var totalShrineCompletions = 0;
+
+var _knownVillages = [
+    'Location_Hateno',
+    'Location_Kakariko',
+    'Location_Rito',
+    'Location_Goron',
+    'Location_Gerudo',
+    'Location_Taura',
+    'Location_UMiiVillage',
+    'Location_WhiteZora',
+    'Location_Cokiri'
+];
+var _knownSettlements = [
+    'Location_AdeyaVillage',
+    'Location_ChirakaVillage',
+    'Location_GarakishiVillage',
+    'Location_ShinyarkiVillage',
+    'Location_TabantaVillage',
+    'Location_RonronCity'
+];
+var _landmarkTypes = [
+    'hatago',
+    'village',
+    'settlement',
+    'great_fairy',
+    'goddess',
+    'castle',
+    'shop_bougu',
+    'shop_jewel',
+    'shop_yorozu',
+    'shop_color',
+    'yadoya'
+];
 
 SavegameEditor = {
     Name: 'The legend of Zelda: Breath of the wild',
@@ -199,11 +236,6 @@ SavegameEditor = {
             this._getCompletedShrineIndices(shrineCompletions);
         shrinesCompleted = Object.keys(completedIndices).length;
 
-        window.localStorage.setItem(
-            'botw-unexplored-viewer',
-            JSON.stringify(locationValues)
-        );
-
         renderStats(
             tempFile.readU32(this.Offsets.KOROK_SEED_COUNTER),
             shrinesCompleted
@@ -231,38 +263,6 @@ SavegameEditor = {
         // Derive discovered locations (all locations minus not-found) and mark them.
         // Assign a location_type based on internal_name for icon selection.
         // Landmark types are always shown regardless of discovery state.
-        var _knownVillages = [
-            'Location_Hateno',
-            'Location_Kakariko',
-            'Location_Rito',
-            'Location_Goron',
-            'Location_Gerudo',
-            'Location_Taura',
-            'Location_UMiiVillage',
-            'Location_WhiteZora',
-            'Location_Cokiri'
-        ];
-        var _knownSettlements = [
-            'Location_AdeyaVillage',
-            'Location_ChirakaVillage',
-            'Location_GarakishiVillage',
-            'Location_ShinyarkiVillage',
-            'Location_TabantaVillage',
-            'Location_RonronCity'
-        ];
-        var landmarkTypes = [
-            'hatago',
-            'village',
-            'settlement',
-            'great_fairy',
-            'goddess',
-            'castle',
-            'shop_bougu',
-            'shop_jewel',
-            'shop_yorozu',
-            'shop_color',
-            'yadoya'
-        ];
         var discoveredLocations = {};
         for (var _hash in locations) {
             var _loc = locations[_hash];
@@ -287,7 +287,7 @@ SavegameEditor = {
             else if (_n.indexOf('ShopColor') !== -1) _type = 'shop_color';
             else if (_n.indexOf('ShopYadoya') !== -1) _type = 'yadoya';
 
-            var isLandmark = landmarkTypes.indexOf(_type) !== -1;
+            var isLandmark = _landmarkTypes.indexOf(_type) !== -1;
             if (
                 !locationValues.notFound.locations[_loc.internal_name] ||
                 isLandmark
@@ -374,7 +374,6 @@ SavegameEditor = {
         if (_sh !== -1)
             setMotorcycleIndicator(tempFile.readU32(_sh + 4) > 0);
 
-        addWaypointListeners();
         applyHiddenStates();
         applyServiceHiddenStates();
     },
@@ -545,6 +544,12 @@ window.addEventListener(
             }
         }
 
+        // Cache totals — these are constants derived from map-locations.js, never change at runtime
+        totalShrines = Object.keys(shrines).length;
+        totalTowers = Object.keys(towers).length;
+        totalDivineBeasts = Object.keys(divineBeasts).length;
+        totalShrineCompletions = Object.keys(shrineCompletions).length;
+
         window.addEventListener('scroll', onScroll, false);
 
         // Fetch the save file from the server and re-render the map
@@ -702,11 +707,6 @@ window.addEventListener(
                 };
             }
 
-            window.localStorage.setItem(
-                'botw-unexplored-viewer',
-                JSON.stringify(locationValues)
-            );
-
             renderStats(locationValues.found.koroks, 0);
 
             SavegameEditor.drawKorokPaths(locationValues.notFound.koroks);
@@ -732,6 +732,7 @@ window.addEventListener(
         });
 
         initRegionLabels();
+        initWaypointListeners();
     },
     false
 );
@@ -963,18 +964,22 @@ function applyServiceHiddenStates() {
     );
 }
 
-// Add event Listeners for Waypoints
-function addWaypointListeners() {
-    [].forEach.call(document.querySelectorAll('.waypoint'), function (element) {
-        if (!element.classList.contains('warp')) {
-            element.addEventListener('click', function () {
-                removeWaypoint(element);
-            });
-        }
-        element.addEventListener('mouseenter', function () {
-            showWaypointTooltip(element);
-        });
-        element.addEventListener('mouseleave', hideWaypointTooltip);
+// Set up delegated event listeners on #map-container — called once on page load.
+// Handles click (dismiss), mouseover (tooltip), and mouseout (hide tooltip) for all waypoints
+// without registering individual listeners per element.
+function initWaypointListeners() {
+    var container = document.getElementById('map-container');
+    container.addEventListener('click', function (e) {
+        var wp = e.target.closest('.waypoint');
+        if (wp && !wp.classList.contains('warp')) removeWaypoint(wp);
+    });
+    container.addEventListener('mouseover', function (e) {
+        var wp = e.target.closest('.waypoint');
+        if (wp) showWaypointTooltip(wp);
+    });
+    container.addEventListener('mouseout', function (e) {
+        var wp = e.target.closest('.waypoint');
+        if (wp && !wp.contains(e.relatedTarget)) hideWaypointTooltip();
     });
 }
 
@@ -1056,11 +1061,6 @@ function removeWaypoint(element) {
 
     setValue('span-number-' + type, locationValues.found[type]);
 
-    window.localStorage.setItem(
-        'botw-unexplored-viewer',
-        JSON.stringify(locationValues)
-    );
-
     element.remove();
 
     if (type == 'koroks') {
@@ -1080,22 +1080,13 @@ function renderStats(korokCount, shrinesCompletedCount) {
     setValue('span-number-locations', locationValues.found.locations);
     setValue('span-number-total-locations', 226);
     setValue('span-number-shrines', locationValues.found.shrines);
-    setValue('span-number-total-shrines', Object.keys(shrines).length);
+    setValue('span-number-total-shrines', totalShrines);
     setValue('span-number-shrines-completed', shrinesCompletedCount);
-    setValue(
-        'span-number-total-shrines-completed',
-        Object.keys(shrineCompletions).length
-    );
+    setValue('span-number-total-shrines-completed', totalShrineCompletions);
     setValue('span-number-towers', locationValues.found.towers);
-    setValue('span-number-total-towers', Object.keys(towers).length);
-    setValue(
-        'span-number-divine-beasts',
-        locationValues.found.divineBeasts
-    );
-    setValue(
-        'span-number-total-divine-beasts',
-        Object.keys(divineBeasts).length
-    );
+    setValue('span-number-total-towers', totalTowers);
+    setValue('span-number-divine-beasts', locationValues.found.divineBeasts);
+    setValue('span-number-total-divine-beasts', totalDivineBeasts);
 }
 
 // Remove all Waypoints

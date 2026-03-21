@@ -115,6 +115,9 @@ function loadMapHashes() {
     };
 }
 
+// Cache map hashes at startup — map-locations.js never changes at runtime
+const cachedMapHashes = loadMapHashes();
+
 // Scan save buffer for found/total counts of a hash table
 // A flag is "found" when its value field (offset+4) is non-zero
 function scanFlags(buf, readU32, hashTable) {
@@ -218,7 +221,7 @@ function parseSaveMetrics(buf) {
 
     // Location flag scans — mirror the sidebar metrics
     try {
-        const map = loadMapHashes();
+        const map = cachedMapHashes;
         metrics.locations = scanFlags(buf, r.u32, map.locations);
         metrics.locations.total = 226; // hardcoded per game sources (matches sidebar)
         metrics.shrines_discovered = scanFlags(buf, r.u32, map.shrines);
@@ -237,7 +240,8 @@ function parseSaveMetrics(buf) {
     return metrics;
 }
 
-app.get('/api', (req, res) => {
+// Debug endpoint — only available when DEBUG=1 env var is set
+if (process.env.DEBUG) app.get('/api', (req, res) => {
     getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
         if (!filePath) {
