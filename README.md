@@ -31,7 +31,7 @@ A **Services** section in the sidebar lists nine location subtypes that can be t
 
 ### Track Player
 
-A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position every 10 seconds — keeping your character in view as you play, even if you manually pan the map between saves. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions. The track player toggle and zoom level are also controllable via the state API.
+A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position whenever the save file is updated — keeping your character in view after each manual or auto-save. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions. The track player toggle and zoom level are also controllable via the state API.
 
 ### Player Stats
 Reads directly from the save files — no game interaction required:
