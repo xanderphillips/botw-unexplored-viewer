@@ -16,8 +16,10 @@ const STATE_TMP = STATE_FILE + '.tmp';
 
 const DEFAULT_STATE = {
     schemaVersion: 1,
+    stateVersion: 0,
     hiddenTypes: [],
     hiddenServices: [],
+    testMode: false,
     trackPlayer: false,
     trackZoom: 15,
     mapView: {
@@ -57,6 +59,7 @@ function writeState(patch) {
     try {
         const current = readState();
         const next = Object.assign({}, current, patch, {
+            stateVersion: (current.stateVersion || 0) + 1,
             mapView: Object.assign({}, current.mapView, patch.mapView || {}),
             dismissedWaypoints: Object.assign(
                 {},

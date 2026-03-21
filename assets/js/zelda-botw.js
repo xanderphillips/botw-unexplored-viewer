@@ -14,6 +14,8 @@
 var currentEditingItem = 0;
 var locationValues = {};
 var _saveHashMap = null;
+var _dismissedWaypoints = { koroks: new Set(), locations: new Set() };
+var _lastStateVersion = -1;
 
 var shrines = {};
 var towers = {};
@@ -385,12 +387,23 @@ SavegameEditor = {
             var entry = _saveHashMap[hash];
             if (!entry) continue;
             if (!entry.value) {
-                locationValues.notFound[key][hashObjects[hash].internal_name] = {
-                    display_name: hashObjects[hash].display_name,
-                    x: hashObjects[hash].x,
-                    y: hashObjects[hash].y,
-                    offset: entry.offset
-                };
+                var iname = hashObjects[hash].internal_name;
+                var dSet =
+                    key === 'koroks'
+                        ? _dismissedWaypoints.koroks
+                        : key === 'locations'
+                          ? _dismissedWaypoints.locations
+                          : null;
+                if (dSet && dSet.has(iname)) {
+                    locationValues.found[key]++;
+                } else {
+                    locationValues.notFound[key][iname] = {
+                        display_name: hashObjects[hash].display_name,
+                        x: hashObjects[hash].x,
+                        y: hashObjects[hash].y,
+                        offset: entry.offset
+                    };
+                }
             } else {
                 locationValues.found[key]++;
             }
@@ -567,6 +580,11 @@ window.addEventListener(
                     });
                 })
                 .then(function (result) {
+                    if (lastMtime && result.mtime && result.mtime !== lastMtime) {
+                        _dismissedWaypoints.koroks.clear();
+                        _dismissedWaypoints.locations.clear();
+                        BotWApi.delete('/api/state/dismissed/all');
+                    }
                     removeAllWaypoints();
                     loadSavegameFromArrayBuffer(result.buf, 'game_data.sav');
                     lastMtime = result.mtime;
@@ -583,29 +601,166 @@ window.addEventListener(
             trackPlayerRow.addEventListener('click', function () {
                 var isTracking =
                     trackPlayerRow.getAttribute('data-tracking') === 'true';
-                trackPlayerRow.setAttribute(
-                    'data-tracking',
-                    isTracking ? 'false' : 'true'
-                );
+                var next = !isTracking;
+                trackPlayerRow.setAttribute('data-tracking', next ? 'true' : 'false');
+                BotWApi.patch('/api/state/track-player', { enabled: next });
             });
         }
 
-        // Track Player zoom slider — persist value in localStorage
+        // Track Player zoom slider — persist value via server API
         var trackZoomSlider = document.getElementById('track-zoom-slider');
+        var _saveTrackZoom = BotWApi.debounce(function (zoom) {
+            BotWApi.patch('/api/state/track-zoom', { zoom: zoom });
+        }, 500);
         if (trackZoomSlider) {
-            var savedZoom = localStorage.getItem('botw-track-zoom');
-            if (savedZoom !== null) trackZoomSlider.value = savedZoom;
             trackZoomSlider.addEventListener('input', function () {
-                localStorage.setItem('botw-track-zoom', trackZoomSlider.value);
+                _saveTrackZoom(parseFloat(trackZoomSlider.value));
             });
+        }
+
+        // Fetch state from server. Returns a Promise resolving to the state object or null.
+        function syncStateFromServer() {
+            return BotWApi.get('/api/state')
+                .then(function (data) {
+                    return data && data.ok ? data.state : null;
+                })
+                .catch(function () {
+                    return null;
+                });
+        }
+
+        // Apply server state to the UI.
+        // applyToMap=false: only set attributes (used on init before waypoints exist).
+        // applyToMap=true: also update waypoint visibility and remove newly dismissed items.
+        // restoreMapView=true: restore saved pan/zoom (only on initial page load).
+        function applyState(s, applyToMap, restoreMapView) {
+            if (!s) return;
+
+            // Dismissed waypoints
+            var newKoroks = new Set(
+                s.dismissedWaypoints ? s.dismissedWaypoints.koroks || [] : []
+            );
+            var newLocations = new Set(
+                s.dismissedWaypoints ? s.dismissedWaypoints.locations || [] : []
+            );
+            if (applyToMap) {
+                // Remove any waypoints dismissed via external API call
+                newKoroks.forEach(function (name) {
+                    if (!_dismissedWaypoints.koroks.has(name)) {
+                        if (locationValues.notFound && locationValues.notFound.koroks)
+                            delete locationValues.notFound.koroks[name];
+                        var el = document.getElementById(name);
+                        if (el) {
+                            el.remove();
+                            [].forEach.call(
+                                document.querySelectorAll('.line.' + name),
+                                function (l) { l.remove(); }
+                            );
+                            if (locationValues.found) {
+                                locationValues.found.koroks =
+                                    (locationValues.found.koroks || 0) + 1;
+                                setValue('span-number-koroks', locationValues.found.koroks);
+                            }
+                        }
+                    }
+                });
+                newLocations.forEach(function (name) {
+                    if (!_dismissedWaypoints.locations.has(name)) {
+                        if (locationValues.notFound && locationValues.notFound.locations)
+                            delete locationValues.notFound.locations[name];
+                        var el = document.getElementById(name);
+                        if (el) {
+                            el.remove();
+                            if (locationValues.found) {
+                                locationValues.found.locations =
+                                    (locationValues.found.locations || 0) + 1;
+                                setValue(
+                                    'span-number-locations',
+                                    locationValues.found.locations
+                                );
+                            }
+                        }
+                    }
+                });
+            }
+            _dismissedWaypoints.koroks = newKoroks;
+            _dismissedWaypoints.locations = newLocations;
+
+            // Track player
+            var row = document.getElementById('track-player-row');
+            if (row)
+                row.setAttribute('data-tracking', s.trackPlayer ? 'true' : 'false');
+
+            // Track zoom
+            if (trackZoomSlider && s.trackZoom != null)
+                trackZoomSlider.value = s.trackZoom;
+
+            // Map view — only restore on initial page load, not during poll syncs
+            if (
+                restoreMapView &&
+                s.mapView &&
+                s.mapView.scale !== null &&
+                window.MapView
+            ) {
+                window.MapView.setView(
+                    s.mapView.scale,
+                    s.mapView.panX || 0,
+                    s.mapView.panY || 0
+                );
+            }
+
+            // Hidden types
+            [].forEach.call(
+                document.querySelectorAll('#toolbar label[data-type]'),
+                function (label) {
+                    var type = label.getAttribute('data-type');
+                    if (s.hiddenTypes && s.hiddenTypes.indexOf(type) !== -1) {
+                        label.setAttribute('data-hidden', 'true');
+                    } else {
+                        label.removeAttribute('data-hidden');
+                    }
+                }
+            );
+
+            // Hidden services
+            [].forEach.call(
+                document.querySelectorAll('#services-section label[data-service]'),
+                function (label) {
+                    var svc = label.getAttribute('data-service');
+                    if (s.hiddenServices && s.hiddenServices.indexOf(svc) !== -1) {
+                        label.setAttribute('data-hidden', 'true');
+                    } else {
+                        label.removeAttribute('data-hidden');
+                    }
+                }
+            );
+
+            if (applyToMap) {
+                applyHiddenStates();
+                applyServiceHiddenStates();
+            }
+
+            // Test mode banner
+            document.body.classList.toggle('test-mode', !!s.testMode);
+
+            _lastStateVersion = s.stateVersion || 0;
         }
 
         // Set up toolbar hover highlighting — labels are always in DOM
-        setupToolbarHover();
-        setupServiceToggles();
+        // Register debounced map-view save via MapView.onZoom
+        var _saveMapView = BotWApi.debounce(function () {
+            if (!window.MapView) return;
+            var v = window.MapView.getView();
+            BotWApi.patch('/api/state/map-view', v);
+        }, 1000);
+        if (window.MapView) window.MapView.onZoom(_saveMapView);
 
-        // Initial load
-        loadSaveFromServer();
+        syncStateFromServer().then(function (s) {
+            applyState(s, false, true);
+            setupToolbarHover();
+            setupServiceToggles();
+            loadSaveFromServer();
+        });
 
         // Poll /api/mtime every 10 seconds; re-render only when the file has changed
         function pollMtime() {
@@ -618,6 +773,13 @@ window.addEventListener(
                     if (data.mtime) updateSaveTimestamp(data.mtime);
                     if (data.mtime && data.mtime !== lastMtime) {
                         loadSaveFromServer();
+                    } else if (
+                        typeof data.stateVersion === 'number' &&
+                        data.stateVersion !== _lastStateVersion
+                    ) {
+                        syncStateFromServer().then(function (s) {
+                            applyState(s, true, false);
+                        });
                     }
                     // Track Player: re-center on every poll if enabled (covers manual panning between saves)
                     var toggle = document.getElementById('track-player-row');
@@ -640,6 +802,17 @@ window.addEventListener(
         }
         pollMtime();
         setInterval(pollMtime, 10000);
+
+        // SSE — react to server state changes immediately without waiting for the poll
+        var _sseSource = new EventSource('/api/events');
+        _sseSource.addEventListener('state-change', function (e) {
+            var data = JSON.parse(e.data);
+            if (typeof data.stateVersion === 'number' && data.stateVersion !== _lastStateVersion) {
+                syncStateFromServer().then(function (s) {
+                    applyState(s, true, false);
+                });
+            }
+        });
 
         function setServerOnline(online) {
             var dot = document.getElementById('server-status-dot');
@@ -787,12 +960,6 @@ function setupToolbarHover() {
         document.querySelectorAll('#toolbar label[data-type]'),
         function (label) {
             var type = label.getAttribute('data-type');
-            var storageKey = 'botw-hidden-' + type;
-
-            // Restore persisted hidden state
-            if (localStorage.getItem(storageKey) === 'true') {
-                label.setAttribute('data-hidden', 'true');
-            }
 
             label.addEventListener('mouseenter', function () {
                 [].forEach.call(
@@ -814,7 +981,10 @@ function setupToolbarHover() {
                 var isHidden = label.getAttribute('data-hidden') === 'true';
                 if (isHidden) {
                     label.removeAttribute('data-hidden');
-                    localStorage.removeItem(storageKey);
+                    BotWApi.patch('/api/state/hidden-types', {
+                        type: type,
+                        hidden: false
+                    });
                     [].forEach.call(
                         document.querySelectorAll('.waypoint.' + type),
                         function (wp) {
@@ -831,7 +1001,10 @@ function setupToolbarHover() {
                     }
                 } else {
                     label.setAttribute('data-hidden', 'true');
-                    localStorage.setItem(storageKey, 'true');
+                    BotWApi.patch('/api/state/hidden-types', {
+                        type: type,
+                        hidden: true
+                    });
                     [].forEach.call(
                         document.querySelectorAll('.waypoint.' + type),
                         function (wp) {
@@ -882,12 +1055,6 @@ function setupServiceToggles() {
         document.querySelectorAll('#services-section label[data-service]'),
         function (label) {
             var svcType = label.getAttribute('data-service');
-            var storageKey = 'botw-svc-hidden-' + svcType;
-
-            // Restore persisted hidden state
-            if (localStorage.getItem(storageKey) === 'true') {
-                label.setAttribute('data-hidden', 'true');
-            }
 
             label.addEventListener('mouseenter', function () {
                 [].forEach.call(
@@ -913,7 +1080,10 @@ function setupServiceToggles() {
                 var isHidden = label.getAttribute('data-hidden') === 'true';
                 if (isHidden) {
                     label.removeAttribute('data-hidden');
-                    localStorage.removeItem(storageKey);
+                    BotWApi.patch('/api/state/hidden-services', {
+                        service: svcType,
+                        hidden: false
+                    });
                     [].forEach.call(
                         document.querySelectorAll(
                             '.waypoint.location-discovered[data-location-type="' +
@@ -926,7 +1096,10 @@ function setupServiceToggles() {
                     );
                 } else {
                     label.setAttribute('data-hidden', 'true');
-                    localStorage.setItem(storageKey, 'true');
+                    BotWApi.patch('/api/state/hidden-services', {
+                        service: svcType,
+                        hidden: true
+                    });
                     [].forEach.call(
                         document.querySelectorAll(
                             '.waypoint.location-discovered[data-location-type="' +
@@ -1061,6 +1234,9 @@ function removeWaypoint(element) {
     locationValues.found[type]++;
 
     setValue('span-number-' + type, locationValues.found[type]);
+
+    var apiType = type === 'koroks' ? 'korok' : 'location';
+    BotWApi.post('/api/state/dismissed', { type: apiType, name: element.id });
 
     element.remove();
 
@@ -1420,6 +1596,18 @@ function setMotorcycleIndicator(owned) {
         // Returns current zoom state for external consumers
         getZoomInfo: function () {
             return { scale: scale, minZoom: minZoom, maxZoom: maxZoom };
+        },
+        // Directly set scale and pan offsets (used to restore persisted map view)
+        setView: function (newScale, newPanX, newPanY) {
+            if (!mapViewport) return;
+            scale = Math.max(minZoom, Math.min(maxZoom, newScale));
+            panX = newPanX || 0;
+            panY = newPanY || 0;
+            updateTransform();
+        },
+        // Returns current viewport state for persistence
+        getView: function () {
+            return { scale: scale, panX: panX, panY: panY };
         },
         // Returns the zoom level used by Track Player: 15% into the full zoom range,
         // ensuring the map is always larger than the viewport so centering works.

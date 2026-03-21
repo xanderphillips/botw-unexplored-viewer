@@ -18,7 +18,7 @@ Each entry is color-coded, hoverable, and toggleable:
 | Divine Beasts | Red | 4 |
 | Player Position | White | — |
 
-Each metric row shows the stat label on the left and its count on the right, with a color bar below. The sidebar remembers which categories you have toggled off between sessions.
+Each metric row shows the stat label on the left and its count on the right, with a color bar below. All UI state (visible categories, service filters, track player, zoom level, dismissed waypoints, map view) is persisted server-side and restored on every page load.
 
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
@@ -31,7 +31,7 @@ A **Services** section in the sidebar lists nine location subtypes that can be t
 
 ### Track Player
 
-A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position every 10 seconds — keeping your character in view as you play, even if you manually pan the map between saves. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions.
+A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position every 10 seconds — keeping your character in view as you play, even if you manually pan the map between saves. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions. The track player toggle and zoom level are also controllable via the state API.
 
 ### Player Stats
 Reads directly from the save files — no game interaction required:
@@ -96,13 +96,65 @@ Since the server polls the save files for changes every 10 seconds, this endpoin
 }
 ```
 
-This data can serve as a live input feed for a wide range of external systems:
+The save-file data can serve as a live input feed for a wide range of external systems:
 
 - **Stream overlays** — display live completion stats or player coordinates in OBS or browser-source overlays
 - **Discord bots** — post milestone notifications when a Korok seed count or shrine count crosses a threshold
 - **Home automation** — trigger lighting scenes or alerts based on game progress
 - **Spreadsheets / logging** — poll on a cron schedule and append rows to track progress over a play session
 - **Webhooks and pipelines** — feed into any HTTP-based automation tool (Zapier, n8n, Home Assistant, etc.)
+
+### State API
+
+Every piece of UI state can be read and written via an authenticated REST API. This lets external tools, scripts, or overlays control the viewer programmatically — the browser UI is just one client.
+
+**Authentication**: all state endpoints require an `X-API-Key` header. Set `API_KEY=<your-key>` in `server/.env`. The browser fetches the key automatically from `GET /api/config` on load.
+
+#### Bootstrap
+
+```
+GET /api/config          → { apiKey }     (no auth required)
+GET /api/state           → { ok, state }
+```
+
+#### Map View
+
+```
+PATCH /api/state/map-view   { scale, panX, panY }   (null resets to default)
+```
+
+#### Track Player
+
+```
+PATCH /api/state/track-player   { enabled: true|false }
+PATCH /api/state/track-zoom     { zoom: 5–90 }
+```
+
+#### Icon Visibility
+
+```
+PATCH /api/state/hidden-types     { type, hidden: true|false }
+PATCH /api/state/hidden-services  { service, hidden: true|false }
+```
+
+Valid `type` values: `korok`, `location`, `location-discovered`, `shrine`, `shrine-completed`, `tower`, `divine-beast`, `labo`, `warp`, `player-position`
+
+Valid `service` values: `hatago`, `village`, `settlement`, `great_fairy`, `goddess`, `yadoya`, `shop_yorozu`, `shop_bougu`, `shop_jewel`
+
+#### Dismissed Waypoints
+
+```
+POST   /api/state/dismissed       { type: "korok"|"location", name }
+DELETE /api/state/dismissed/all
+```
+
+#### Real-time Updates (SSE)
+
+```
+GET /api/events   (no auth required)
+```
+
+The browser subscribes to this Server-Sent Events stream. Any API write immediately pushes a `state-change` event to all connected browsers, so the UI reflects changes without waiting for the 10-second poll cycle.
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
 
@@ -118,19 +170,21 @@ This application runs as a Docker container that automatically reads your Cemu s
 
 ### Setup
 
-1. Create a `server/.env` file to configure your Cemu save folder path.
+1. Create a `server/.env` file to configure your Cemu save folder path and API key.
 
    **If running Docker from WSL (Linux-style path):**
    ```
    SAVE_PATH=/mnt/c/Users/YourWindowsUsername/AppData/Roaming/Cemu/mlc01/usr/save/00050000/101c9400/user/80000001
+   API_KEY=your-secret-key-here
    ```
 
    **If running Docker from Windows (Command Prompt or PowerShell):**
    ```
    SAVE_PATH=C:/Users/YourWindowsUsername/AppData/Roaming/Cemu/mlc01/usr/save/00050000/101c9400/user/80000001
+   API_KEY=your-secret-key-here
    ```
 
-   Replace `YourWindowsUsername` with your Windows username. The save folder ID (`80000001`) may also differ — check your Cemu save directory if unsure. Point `SAVE_PATH` at the **root save folder** (not the `0/` subfolder) — the container mounts save slots `0` through `5` automatically.
+   Replace `YourWindowsUsername` with your Windows username. The save folder ID (`80000001`) may also differ — check your Cemu save directory if unsure. Point `SAVE_PATH` at the **root save folder** (not the `0/` subfolder) — the container mounts save slots `0` through `5` automatically. `API_KEY` can be any string; the browser fetches it automatically so you only need it for direct API calls from scripts.
 
 2. Build and start the container:
    ```bash

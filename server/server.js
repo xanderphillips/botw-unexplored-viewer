@@ -93,7 +93,7 @@ app.get('/data/game_data.sav', (req, res) => {
 app.get('/api/mtime', (req, res) => {
     getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
-        res.json({ mtime });
+        res.json({ mtime, stateVersion: readState().stateVersion || 0 });
     });
 });
 
@@ -102,6 +102,39 @@ app.get('/api/mtime', (req, res) => {
 // Safe for LAN-only deployment.
 app.get('/api/config', (req, res) => {
     res.json({ apiKey: process.env.API_KEY || null });
+});
+
+// ── SSE push ──────────────────────────────────────────────────────────────────
+
+const sseClients = new Set();
+
+function broadcastStateChange(stateVersion) {
+    if (sseClients.size === 0) return;
+    const msg = `event: state-change\ndata: ${JSON.stringify({ stateVersion })}\n\n`;
+    sseClients.forEach((client) => {
+        try {
+            client.write(msg);
+        } catch {
+            sseClients.delete(client);
+        }
+    });
+}
+
+// Wrap writeState so every state mutation triggers an SSE broadcast
+function writeStateAndBroadcast(patch) {
+    const next = writeState(patch);
+    broadcastStateChange(next.stateVersion);
+    return next;
+}
+
+// GET /api/events — SSE stream; pushes state-change events on any state mutation
+app.get('/api/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+    sseClients.add(res);
+    req.on('close', () => sseClients.delete(res));
 });
 
 // ── State API ─────────────────────────────────────────────────────────────────
@@ -114,7 +147,7 @@ app.get('/api/state', requireApiKey, (req, res) => {
 
 // PUT /api/state — replace full state (used for bulk sync from client)
 app.put('/api/state', requireApiKey, (req, res) => {
-    const next = writeState(req.body || {});
+    const next = writeStateAndBroadcast(req.body || {});
     res.json({ ok: true, state: next });
 });
 
@@ -129,7 +162,7 @@ app.patch('/api/state/hidden-types', requireApiKey, (req, res) => {
     const state = readState();
     const set = new Set(state.hiddenTypes);
     hidden ? set.add(type) : set.delete(type);
-    res.json({ ok: true, state: writeState({ hiddenTypes: Array.from(set) }) });
+    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenTypes: Array.from(set) }) });
 });
 
 // PATCH /api/state/hidden-services — toggle service filter visibility
@@ -143,7 +176,18 @@ app.patch('/api/state/hidden-services', requireApiKey, (req, res) => {
     const state = readState();
     const set = new Set(state.hiddenServices);
     hidden ? set.add(service) : set.delete(service);
-    res.json({ ok: true, state: writeState({ hiddenServices: Array.from(set) }) });
+    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenServices: Array.from(set) }) });
+});
+
+// PATCH /api/state/test-mode — show or hide the testing banner in the browser
+// Body: { enabled: boolean }
+app.patch('/api/state/test-mode', requireApiKey, (req, res) => {
+    const { enabled } = req.body || {};
+    if (typeof enabled !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
+        return;
+    }
+    res.json({ ok: true, state: writeStateAndBroadcast({ testMode: enabled }) });
 });
 
 // PATCH /api/state/track-player — enable or disable player position tracking
@@ -154,7 +198,7 @@ app.patch('/api/state/track-player', requireApiKey, (req, res) => {
         res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
         return;
     }
-    res.json({ ok: true, state: writeState({ trackPlayer: enabled }) });
+    res.json({ ok: true, state: writeStateAndBroadcast({ trackPlayer: enabled }) });
 });
 
 // PATCH /api/state/track-zoom — set player tracking zoom level
@@ -165,14 +209,14 @@ app.patch('/api/state/track-zoom', requireApiKey, (req, res) => {
         res.status(400).json({ ok: false, error: 'Body must include zoom (number, 5–90)' });
         return;
     }
-    res.json({ ok: true, state: writeState({ trackZoom: zoom }) });
+    res.json({ ok: true, state: writeStateAndBroadcast({ trackZoom: zoom }) });
 });
 
 // PATCH /api/state/map-view — set map pan/zoom viewport
 // Body: { scale: number|null, panX: number|null, panY: number|null }
 app.patch('/api/state/map-view', requireApiKey, (req, res) => {
     const { scale, panX, panY } = req.body || {};
-    res.json({ ok: true, state: writeState({ mapView: { scale, panX, panY } }) });
+    res.json({ ok: true, state: writeStateAndBroadcast({ mapView: { scale, panX, panY } }) });
 });
 
 // POST /api/state/dismissed — mark a waypoint as manually dismissed
@@ -189,7 +233,7 @@ app.post('/api/state/dismissed', requireApiKey, (req, res) => {
     list.add(name);
     res.json({
         ok: true,
-        state: writeState({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
+        state: writeStateAndBroadcast({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
     });
 });
 
@@ -207,7 +251,7 @@ app.delete('/api/state/dismissed', requireApiKey, (req, res) => {
     list.delete(name);
     res.json({
         ok: true,
-        state: writeState({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
+        state: writeStateAndBroadcast({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
     });
 });
 
@@ -216,7 +260,7 @@ app.delete('/api/state/dismissed', requireApiKey, (req, res) => {
 app.delete('/api/state/dismissed/all', requireApiKey, (req, res) => {
     res.json({
         ok: true,
-        state: writeState({ dismissedWaypoints: { koroks: [], locations: [] } })
+        state: writeStateAndBroadcast({ dismissedWaypoints: { koroks: [], locations: [] } })
     });
 });
 
