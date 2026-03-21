@@ -1,4 +1,5 @@
 .DS_Store
+node_modules/
 .claude/
 CLAUDE.md
 server/.env

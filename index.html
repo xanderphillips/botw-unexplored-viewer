@@ -12,12 +12,15 @@
 	<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Noto+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 	<link type="text/css" rel="stylesheet" href="./assets/css/zelda-botw.css" media="all"/>
 	<script type="text/javascript" src="./assets/js/savegame-editor.js"></script>
+	<script type="text/javascript" src="./assets/js/api-client.js"></script>
 	<script type="text/javascript" src="./assets/js/zelda-botw.js"></script>
 	<script type="text/javascript" src="./assets/js/map-locations.js"></script>
 	<script type="text/javascript" src="./assets/js/map-regions.js"></script>
 	<!-- <script type="text/javascript" src="./zelda-botw.hashes.js"></script> -->
 </head>
 <body>
+
+<div id="test-banner"></div>
 
 <!-- HEADER -->
 <div id="header">
@@ -121,19 +124,19 @@
 		<div id="zoom-label"></div>
 		<div id="map-container">
 			<img src='./assets/images/BotW-Map.png'/>
-			<svg id="path-svg" height="5000" width="6000">
+			<svg id="path-svg">
 					<defs>
 					<marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto" markerUnits="strokeWidth" viewBox="0 0 20 20">
 						<path d="M0,0 L0,6 L9,3 Z" fill="lime" stroke="green" stroke-width="1" />
 					</marker>
 					</defs>
-				<g id="path-group" fill="none" stroke="#ffffff" stroke-width="3" marker-start="url(#arrow)""></g>
+				<g id="path-group" fill="none" stroke="#ffffff" stroke-width="3" marker-start="url(#arrow)"</g>
 			</svg>
 		</div>
 	</div>
 	
 </div>
 
-<ul id="caca"></ul>
+
 </body>
 </html>
