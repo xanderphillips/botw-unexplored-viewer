@@ -18,7 +18,9 @@ const app = express();
 const PORT = 3000;
 
 // All six save slots: 0 = manual save, 1–5 = auto-saves
-const SAVE_SLOTS = Array.from({length: 6}, (_, i) => path.join(__dirname, `data/game_data_${i}.sav`));
+const SAVE_SLOTS = Array.from({ length: 6 }, (_, i) =>
+    path.join(__dirname, `data/game_data_${i}.sav`)
+);
 
 // Find the most recently modified save slot.
 // Calls callback(filePath, mtimeMs) with the winner, or callback(null, null) if none are readable.
@@ -26,13 +28,14 @@ function getMostRecentSave(callback) {
     let remaining = SAVE_SLOTS.length;
     let bestPath = null;
     let bestMtime = -1;
-    SAVE_SLOTS.forEach(filePath => {
+    SAVE_SLOTS.forEach((filePath) => {
         fs.stat(filePath, (err, stats) => {
             if (!err && stats.isFile() && stats.mtimeMs > bestMtime) {
                 bestMtime = stats.mtimeMs;
                 bestPath = filePath;
             }
-            if (--remaining === 0) callback(bestPath, bestMtime > -1 ? bestMtime : null);
+            if (--remaining === 0)
+                callback(bestPath, bestMtime > -1 ? bestMtime : null);
         });
     });
 }
@@ -43,9 +46,15 @@ app.use(express.static(__dirname));
 // Serve the most recently modified save slot
 app.get('/data/game_data.sav', (req, res) => {
     getMostRecentSave((filePath, mtime) => {
-        if (!filePath) { res.status(404).send('No save files found'); return; }
+        if (!filePath) {
+            res.status(404).send('No save files found');
+            return;
+        }
         fs.readFile(filePath, (err, data) => {
-            if (err) { res.status(404).send('Save file not found'); return; }
+            if (err) {
+                res.status(404).send('Save file not found');
+                return;
+            }
             res.setHeader('Content-Type', 'application/octet-stream');
             res.setHeader('Content-Length', data.length);
             res.setHeader('Cache-Control', 'no-store');
@@ -65,7 +74,10 @@ app.get('/api/mtime', (req, res) => {
 
 // Parse map-locations.js to extract hash → internal_name tables for each category
 function loadMapHashes() {
-    const content = fs.readFileSync(path.join(__dirname, 'assets/js/map-locations.js'), 'utf8');
+    const content = fs.readFileSync(
+        path.join(__dirname, 'assets/js/map-locations.js'),
+        'utf8'
+    );
 
     function extractSection(name) {
         const start = content.indexOf(`var ${name} = {`);
@@ -81,22 +93,25 @@ function loadMapHashes() {
     }
 
     const warps = extractSection('warps');
-    const shrines = {}, towers = {}, divineBeasts = {}, otherWarps = {};
+    const shrines = {},
+        towers = {},
+        divineBeasts = {},
+        otherWarps = {};
     for (const h in warps) {
         const n = warps[h];
-        if (n.startsWith('Location_Dungeon'))   shrines[h] = n;
+        if (n.startsWith('Location_Dungeon')) shrines[h] = n;
         else if (n.startsWith('Location_MapTower')) towers[h] = n;
         else if (n.startsWith('Location_Remains')) divineBeasts[h] = n;
         else otherWarps[h] = n;
     }
 
     return {
-        locations:         extractSection('locations'),
+        locations: extractSection('locations'),
         shrines,
         towers,
         divineBeasts,
-        koroks:            extractSection('koroks'),
-        shrineCompletions: extractSection('shrineCompletions'),
+        koroks: extractSection('koroks'),
+        shrineCompletions: extractSection('shrineCompletions')
     };
 }
 
@@ -107,7 +122,10 @@ function scanFlags(buf, readU32, hashTable) {
     const total = Object.keys(hashTable).length;
     for (let i = 0x0c; i < buf.length - 4; i += 8) {
         const hash = readU32(i);
-        if (Object.prototype.hasOwnProperty.call(hashTable, hash) && readU32(i + 4) !== 0)
+        if (
+            Object.prototype.hasOwnProperty.call(hashTable, hash) &&
+            readU32(i + 4) !== 0
+        )
             found.add(hash);
     }
     return { found: found.size, total };
@@ -117,8 +135,8 @@ function scanFlags(buf, readU32, hashTable) {
 function parseSaveMetrics(buf) {
     function makeReaders(le) {
         return {
-            u32: (o) => le ? buf.readUInt32LE(o) : buf.readUInt32BE(o),
-            f32: (o) => le ? buf.readFloatLE(o)  : buf.readFloatBE(o),
+            u32: (o) => (le ? buf.readUInt32LE(o) : buf.readUInt32BE(o)),
+            f32: (o) => (le ? buf.readFloatLE(o) : buf.readFloatBE(o))
         };
     }
     function searchHash(readU32, hash) {
@@ -131,28 +149,38 @@ function parseSaveMetrics(buf) {
     var r, le;
     var beReaders = makeReaders(false);
     var leReaders = makeReaders(true);
-    if (searchHash(beReaders.u32, 0x8a94e07a) >= 0) { r = beReaders; le = false; }
-    else if (searchHash(leReaders.u32, 0x8a94e07a) >= 0) { r = leReaders; le = true; }
-    else return { error: 'KOROK_SEED_COUNTER not found — not a valid BotW save' };
+    if (searchHash(beReaders.u32, 0x8a94e07a) >= 0) {
+        r = beReaders;
+        le = false;
+    } else if (searchHash(leReaders.u32, 0x8a94e07a) >= 0) {
+        r = leReaders;
+        le = true;
+    } else
+        return {
+            error: 'KOROK_SEED_COUNTER not found — not a valid BotW save'
+        };
 
     var metrics = { console: le ? 'Switch' : 'Wii U' };
 
     var targets = {
         KOROK_SEED_COUNTER: { hash: 0x8a94e07a, type: 'u32' },
-        MAX_HEARTS:          { hash: 0x2906f327, type: 'u32' },  // quarter-heart units
-        MAX_STAMINA:         { hash: 0x3adff047, type: 'f32' },
-        PLAYTIME:            { hash: 0x73c29681, type: 'u32' },
-        RUPEES:              { hash: 0x23149bf8, type: 'u32' },
-        MOTORCYCLE:          { hash: 0xc9328299, type: 'u32' },
-        PLAYER_POSITION:     { hash: 0xa40ba103, type: 'f32x3' },
-        MAP:                 { hash: 0x0bee9e46, type: 'u32' },
-        MAPTYPE:             { hash: 0xd913b769, type: 'u32' },
+        MAX_HEARTS: { hash: 0x2906f327, type: 'u32' }, // quarter-heart units
+        MAX_STAMINA: { hash: 0x3adff047, type: 'f32' },
+        PLAYTIME: { hash: 0x73c29681, type: 'u32' },
+        RUPEES: { hash: 0x23149bf8, type: 'u32' },
+        MOTORCYCLE: { hash: 0xc9328299, type: 'u32' },
+        PLAYER_POSITION: { hash: 0xa40ba103, type: 'f32x3' },
+        MAP: { hash: 0x0bee9e46, type: 'u32' },
+        MAPTYPE: { hash: 0xd913b769, type: 'u32' }
     };
 
     for (var name in targets) {
         var t = targets[name];
         var off = searchHash(r.u32, t.hash);
-        if (off < 0) { metrics[name] = null; continue; }
+        if (off < 0) {
+            metrics[name] = null;
+            continue;
+        }
         if (t.type === 'u32') {
             metrics[name] = r.u32(off + 4);
         } else if (t.type === 'f32') {
@@ -160,10 +188,10 @@ function parseSaveMetrics(buf) {
         } else if (t.type === 'f32x3') {
             // Three consecutive [hash,value] pairs with the same hash: X at +4, Y(height) at +12, Z at +20
             metrics[name] = {
-                x:       r.f32(off + 4),
-                y:       r.f32(off + 12),
-                z:       r.f32(off + 20),
-                raw_hex: buf.slice(off, off + 24).toString('hex'),
+                x: r.f32(off + 4),
+                y: r.f32(off + 12),
+                z: r.f32(off + 20),
+                raw_hex: buf.slice(off, off + 24).toString('hex')
             };
         }
     }
@@ -177,20 +205,31 @@ function parseSaveMetrics(buf) {
 
     if (metrics.PLAYTIME != null) {
         var s = metrics.PLAYTIME;
-        var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-        metrics.PLAYTIME_formatted = h + ':' + (m<10?'0'+m:m) + ':' + (sec<10?'0'+sec:sec);
+        var h = Math.floor(s / 3600),
+            m = Math.floor((s % 3600) / 60),
+            sec = s % 60;
+        metrics.PLAYTIME_formatted =
+            h +
+            ':' +
+            (m < 10 ? '0' + m : m) +
+            ':' +
+            (sec < 10 ? '0' + sec : sec);
     }
 
     // Location flag scans — mirror the sidebar metrics
     try {
         const map = loadMapHashes();
-        metrics.locations         = scanFlags(buf, r.u32, map.locations);
-        metrics.locations.total   = 226; // hardcoded per game sources (matches sidebar)
+        metrics.locations = scanFlags(buf, r.u32, map.locations);
+        metrics.locations.total = 226; // hardcoded per game sources (matches sidebar)
         metrics.shrines_discovered = scanFlags(buf, r.u32, map.shrines);
-        metrics.shrines_completed  = scanFlags(buf, r.u32, map.shrineCompletions);
-        metrics.towers             = scanFlags(buf, r.u32, map.towers);
-        metrics.divine_beasts      = scanFlags(buf, r.u32, map.divineBeasts);
-        metrics.koroks_discovered  = scanFlags(buf, r.u32, map.koroks);
+        metrics.shrines_completed = scanFlags(
+            buf,
+            r.u32,
+            map.shrineCompletions
+        );
+        metrics.towers = scanFlags(buf, r.u32, map.towers);
+        metrics.divine_beasts = scanFlags(buf, r.u32, map.divineBeasts);
+        metrics.koroks_discovered = scanFlags(buf, r.u32, map.koroks);
     } catch (e) {
         metrics.location_scan_error = e.message;
     }
@@ -201,9 +240,15 @@ function parseSaveMetrics(buf) {
 app.get('/api', (req, res) => {
     getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
-        if (!filePath) { res.status(404).json({ error: 'No save files found' }); return; }
+        if (!filePath) {
+            res.status(404).json({ error: 'No save files found' });
+            return;
+        }
         fs.readFile(filePath, (err, data) => {
-            if (err) { res.status(404).json({ error: 'Save file not found' }); return; }
+            if (err) {
+                res.status(404).json({ error: 'Save file not found' });
+                return;
+            }
             res.json(parseSaveMetrics(data));
         });
     });
