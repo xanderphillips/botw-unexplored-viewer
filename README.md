@@ -108,13 +108,26 @@ The save-file data can serve as a live input feed for a wide range of external s
 
 Every piece of UI state can be read and written via an authenticated REST API. This lets external tools, scripts, or overlays control the viewer programmatically — the browser UI is just one client.
 
-**Authentication**: all state endpoints require an `X-API-Key` header. Set `API_KEY=<your-key>` in `server/.env`. The browser fetches the key automatically from `GET /api/config` on load.
+**Authentication**: all state endpoints require an `X-API-Key` header matching the `API_KEY` value set in `server/.env`. The browser fetches the key automatically on load — for direct API calls from scripts, retrieve it first:
+
+```bash
+# Retrieve the API key
+curl http://localhost:3000/api/config
+# → { "apiKey": "your-secret-key-here" }
+
+# Use it in subsequent calls
+curl -H "X-API-Key: your-secret-key-here" http://localhost:3000/api/state
+
+# Or capture it inline (bash)
+API_KEY=$(curl -s http://localhost:3000/api/config | python3 -c "import sys,json; print(json.load(sys.stdin)['apiKey'])")
+curl -s -H "X-API-Key: $API_KEY" http://localhost:3000/api/state
+```
 
 #### Bootstrap
 
 ```
 GET /api/config          → { apiKey }     (no auth required)
-GET /api/state           → { ok, state }
+GET /api/state           → { ok, state }  (auth required)
 ```
 
 #### Map View
