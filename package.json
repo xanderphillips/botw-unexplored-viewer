@@ -4,9 +4,9 @@
   "description": "A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save). Runs as a Docker container on the same machine as Cemu and is accessible from any browser on your local network.",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint assets/js/zelda-botw.js server/server.js",
-    "format": "prettier --write assets/js/zelda-botw.js server/server.js assets/css/",
-    "format:check": "prettier --check assets/js/zelda-botw.js server/server.js assets/css/"
+    "lint": "eslint assets/js/zelda-botw.js server/server.js server/state.js",
+    "format": "prettier --write assets/js/zelda-botw.js server/server.js server/state.js assets/css/",
+    "format:check": "prettier --check assets/js/zelda-botw.js server/server.js server/state.js assets/css/"
   },
   "repository": {
     "type": "git",

@@ -5,17 +5,27 @@
  *   - Serve static frontend files (HTML, CSS, JS, map image)
  *   - Proxy the Cemu save file to the browser via /data/game_data.sav
  *   - Expose /api/mtime so the browser can poll for save file changes
+ *   - Expose /api/state/* for authenticated UI state management
+ *   - Expose /api/config for browser API key bootstrap
  *   - Parse save file metrics server-side and expose them via /api (debug)
  *
  * Save file path is configured via SAVE_PATH in server/.env, mounted
  * into the container at /app/data/game_data.sav.
+ *
+ * Authentication: all /api/state/* endpoints require the X-API-Key header
+ * matching the API_KEY environment variable from server/.env.
  */
+'use strict';
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { readState, writeState } = require('./state');
 
 const app = express();
 const PORT = 3000;
+
+app.use(express.json());
 
 // All six save slots: 0 = manual save, 1–5 = auto-saves
 const SAVE_SLOTS = Array.from({ length: 6 }, (_, i) =>
@@ -38,6 +48,21 @@ function getMostRecentSave(callback) {
                 callback(bestPath, bestMtime > -1 ? bestMtime : null);
         });
     });
+}
+
+// Auth middleware — requires X-API-Key header matching API_KEY env var.
+// If API_KEY is not configured, all state endpoints return 503.
+function requireApiKey(req, res, next) {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        res.status(503).json({ ok: false, error: 'API_KEY not configured on server' });
+        return;
+    }
+    if (req.headers['x-api-key'] !== apiKey) {
+        res.status(401).json({ ok: false, error: 'Invalid or missing X-API-Key header' });
+        return;
+    }
+    next();
 }
 
 // Serve static files from app directory (where Dockerfile copies them)
@@ -71,6 +96,131 @@ app.get('/api/mtime', (req, res) => {
         res.json({ mtime });
     });
 });
+
+// Config endpoint — returns the API key for browser bootstrap.
+// No auth required: the key itself is the credential.
+// Safe for LAN-only deployment.
+app.get('/api/config', (req, res) => {
+    res.json({ apiKey: process.env.API_KEY || null });
+});
+
+// ── State API ─────────────────────────────────────────────────────────────────
+// All endpoints require X-API-Key. All return { ok, state } on success.
+
+// GET /api/state — return full state
+app.get('/api/state', requireApiKey, (req, res) => {
+    res.json({ ok: true, state: readState() });
+});
+
+// PUT /api/state — replace full state (used for bulk sync from client)
+app.put('/api/state', requireApiKey, (req, res) => {
+    const next = writeState(req.body || {});
+    res.json({ ok: true, state: next });
+});
+
+// PATCH /api/state/hidden-types — toggle icon type visibility
+// Body: { type: string, hidden: boolean }
+app.patch('/api/state/hidden-types', requireApiKey, (req, res) => {
+    const { type, hidden } = req.body || {};
+    if (typeof type !== 'string' || typeof hidden !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Body must include type (string) and hidden (boolean)' });
+        return;
+    }
+    const state = readState();
+    const set = new Set(state.hiddenTypes);
+    hidden ? set.add(type) : set.delete(type);
+    res.json({ ok: true, state: writeState({ hiddenTypes: Array.from(set) }) });
+});
+
+// PATCH /api/state/hidden-services — toggle service filter visibility
+// Body: { service: string, hidden: boolean }
+app.patch('/api/state/hidden-services', requireApiKey, (req, res) => {
+    const { service, hidden } = req.body || {};
+    if (typeof service !== 'string' || typeof hidden !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Body must include service (string) and hidden (boolean)' });
+        return;
+    }
+    const state = readState();
+    const set = new Set(state.hiddenServices);
+    hidden ? set.add(service) : set.delete(service);
+    res.json({ ok: true, state: writeState({ hiddenServices: Array.from(set) }) });
+});
+
+// PATCH /api/state/track-player — enable or disable player position tracking
+// Body: { enabled: boolean }
+app.patch('/api/state/track-player', requireApiKey, (req, res) => {
+    const { enabled } = req.body || {};
+    if (typeof enabled !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
+        return;
+    }
+    res.json({ ok: true, state: writeState({ trackPlayer: enabled }) });
+});
+
+// PATCH /api/state/track-zoom — set player tracking zoom level
+// Body: { zoom: number (5–90) }
+app.patch('/api/state/track-zoom', requireApiKey, (req, res) => {
+    const { zoom } = req.body || {};
+    if (typeof zoom !== 'number' || zoom < 5 || zoom > 90) {
+        res.status(400).json({ ok: false, error: 'Body must include zoom (number, 5–90)' });
+        return;
+    }
+    res.json({ ok: true, state: writeState({ trackZoom: zoom }) });
+});
+
+// PATCH /api/state/map-view — set map pan/zoom viewport
+// Body: { scale: number|null, panX: number|null, panY: number|null }
+app.patch('/api/state/map-view', requireApiKey, (req, res) => {
+    const { scale, panX, panY } = req.body || {};
+    res.json({ ok: true, state: writeState({ mapView: { scale, panX, panY } }) });
+});
+
+// POST /api/state/dismissed — mark a waypoint as manually dismissed
+// Body: { type: 'korok'|'location', name: string }
+app.post('/api/state/dismissed', requireApiKey, (req, res) => {
+    const { type, name } = req.body || {};
+    if ((type !== 'korok' && type !== 'location') || typeof name !== 'string') {
+        res.status(400).json({ ok: false, error: 'Body must include type ("korok"|"location") and name (string)' });
+        return;
+    }
+    const state = readState();
+    const key = type === 'korok' ? 'koroks' : 'locations';
+    const list = new Set(state.dismissedWaypoints[key]);
+    list.add(name);
+    res.json({
+        ok: true,
+        state: writeState({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
+    });
+});
+
+// DELETE /api/state/dismissed — restore a dismissed waypoint
+// Body: { type: 'korok'|'location', name: string }
+app.delete('/api/state/dismissed', requireApiKey, (req, res) => {
+    const { type, name } = req.body || {};
+    if ((type !== 'korok' && type !== 'location') || typeof name !== 'string') {
+        res.status(400).json({ ok: false, error: 'Body must include type ("korok"|"location") and name (string)' });
+        return;
+    }
+    const state = readState();
+    const key = type === 'korok' ? 'koroks' : 'locations';
+    const list = new Set(state.dismissedWaypoints[key]);
+    list.delete(name);
+    res.json({
+        ok: true,
+        state: writeState({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
+    });
+});
+
+// DELETE /api/state/dismissed/all — clear all dismissed waypoints
+// Called when save file mtime changes (new game state supersedes UI overlay)
+app.delete('/api/state/dismissed/all', requireApiKey, (req, res) => {
+    res.json({
+        ok: true,
+        state: writeState({ dismissedWaypoints: { koroks: [], locations: [] } })
+    });
+});
+
+// ── Debug endpoint ────────────────────────────────────────────────────────────
 
 // Parse map-locations.js to extract hash → internal_name tables for each category
 function loadMapHashes() {
@@ -258,6 +408,11 @@ if (process.env.DEBUG) app.get('/api', (req, res) => {
     });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+// Export app for Supertest integration tests
+if (require.main === module) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running at http://localhost:${PORT}`);
+    });
+}
+
+module.exports = { app };
