@@ -111,7 +111,8 @@ Every piece of UI state can be read and written via a REST API. This lets extern
 #### Bootstrap
 
 ```
-GET /api/state   → { ok, state }
+GET /api/state         → { ok, state }   read full state
+PUT /api/state   { … } → { ok, state }   replace full state
 ```
 
 #### Map View
@@ -141,8 +142,9 @@ Valid `service` values: `hatago`, `village`, `settlement`, `great_fairy`, `godde
 #### Dismissed Waypoints
 
 ```
-POST   /api/state/dismissed       { type: "korok"|"location", name }
-DELETE /api/state/dismissed/all
+POST   /api/state/dismissed      { type: "korok"|"location", name }   dismiss one
+DELETE /api/state/dismissed      { type: "korok"|"location", name }   restore one
+DELETE /api/state/dismissed/all                                        restore all
 ```
 
 #### Test Runner
@@ -156,7 +158,7 @@ Triggers the server-side UI test suite. The server animates all API-controllable
 #### Real-time Updates (SSE)
 
 ```
-GET /api/events   (no auth required)
+GET /api/events
 ```
 
 The browser subscribes to this Server-Sent Events stream. Any API write immediately pushes a `state-change` event to all connected browsers, so the UI reflects changes without waiting for the 10-second poll cycle. A `reload-save` event triggers the browser to re-fetch and re-parse the save file, used after the test runner completes to restore live save data.
@@ -179,7 +181,7 @@ This application runs as a Docker container that automatically reads your Cemu s
 
 ### Setup
 
-1. Create a `server/.env` file to configure your Cemu save folder path and API key.
+1. Create a `server/.env` file to configure your Cemu save folder path.
 
    **If running Docker from WSL (Linux-style path):**
    ```
