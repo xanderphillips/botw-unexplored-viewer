@@ -471,23 +471,25 @@ body.test-mode #test-banner {
     text-decoration: underline;
 }
 #header-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
     padding: 8px 12px 8px 0;
     width: 100%;
     box-sizing: border-box;
 }
 #header h1 {
-    display: block;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: clamp(8px, 1.35vw, 13px);
     margin: 0;
-    text-align: center;
     white-space: nowrap;
-    overflow: hidden;
     color: var(--botw-gold);
     font-family: 'Cinzel', serif;
     text-shadow: 0 0 15px rgba(201, 169, 89, 0.4);
+    pointer-events: none;
 }
 #header h1 img {
     vertical-align: middle;

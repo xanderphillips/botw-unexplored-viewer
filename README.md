@@ -1,4 +1,4 @@
-# Unexplored Area Viewer for The Legend of Zelda: BOTW
+# The Legend of Zelda: BOTW Live Savegame Monitor
 
 ### Because there _really_ needed to be 900 of them, right?
 
