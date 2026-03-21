@@ -16,6 +16,7 @@ var locationValues = {};
 var _saveHashMap = null;
 var _dismissedWaypoints = { koroks: new Set(), locations: new Set() };
 var _lastStateVersion = -1;
+var _prevAppliedState = null;
 
 var shrines = {};
 var towers = {};
@@ -636,6 +637,25 @@ window.addEventListener(
         function applyState(s, applyToMap, restoreMapView) {
             if (!s) return;
 
+            // Audio feedback — play a tone when specific state categories change
+            var prev = _prevAppliedState;
+            if (prev) {
+                // Map stat overrides changed
+                if (JSON.stringify(s.statOverrides) !== JSON.stringify(prev.statOverrides))
+                    playTone('mapStats');
+                // Player stat overrides changed
+                if (JSON.stringify(s.playerStatOverrides) !== JSON.stringify(prev.playerStatOverrides))
+                    playTone('playerStats');
+                // Server status (last update timestamp) changed
+                if (JSON.stringify(s.serverStatusOverride) !== JSON.stringify(prev.serverStatusOverride))
+                    playTone('lastUpdate');
+                // Sidebar type/service visibility changed — detect enable vs disable
+                var prevHiddenCount = ((prev.hiddenTypes || []).length + (prev.hiddenServices || []).length);
+                var nextHiddenCount = ((s.hiddenTypes || []).length + (s.hiddenServices || []).length);
+                if (nextHiddenCount > prevHiddenCount) playTone('sidebarOff');
+                else if (nextHiddenCount < prevHiddenCount) playTone('sidebarOn');
+            }
+
             // Dismissed waypoints
             var newKoroks = new Set(
                 s.dismissedWaypoints ? s.dismissedWaypoints.koroks || [] : []
@@ -692,8 +712,29 @@ window.addEventListener(
                 row.setAttribute('data-tracking', s.trackPlayer ? 'true' : 'false');
 
             // Track zoom
-            if (trackZoomSlider && s.trackZoom != null)
+            if (trackZoomSlider && s.trackZoom != null) {
                 trackZoomSlider.value = s.trackZoom;
+                // Re-center immediately when zoom changes while tracking is active
+                if (row && row.getAttribute('data-tracking') === 'true' && window._playerMapPos && window.MapView) {
+                    window.MapView.smoothCenterOn(
+                        window._playerMapPos.x,
+                        window._playerMapPos.y,
+                        window.MapView.getTrackZoom()
+                    );
+                }
+            }
+
+            // Player position override — place marker and re-center if tracking
+            if (s.playerPositionOverride) {
+                placePlayerMarker(s.playerPositionOverride.x, s.playerPositionOverride.z, 'Player');
+                if (row && row.getAttribute('data-tracking') === 'true' && window._playerMapPos && window.MapView) {
+                    window.MapView.smoothCenterOn(
+                        window._playerMapPos.x,
+                        window._playerMapPos.y,
+                        window.MapView.getTrackZoom()
+                    );
+                }
+            }
 
             // Map view — only restore on initial page load, not during poll syncs
             if (
@@ -740,9 +781,39 @@ window.addEventListener(
                 applyServiceHiddenStates();
             }
 
-            // Test mode banner
+            // Player stat overrides (for test sweeps)
+            if (s.playerStatOverrides) {
+                var ps = s.playerStatOverrides;
+                if (ps.hearts != null) setValue('span-stat-hearts', ps.hearts);
+                if (ps.stamina != null) setValue('span-stat-stamina', parseFloat(ps.stamina).toFixed(1));
+                if (ps.playtime != null) setValue('span-stat-playtime', formatPlaytime(ps.playtime));
+                if (ps.rupees != null) setValue('span-stat-rupees', Math.round(ps.rupees).toLocaleString());
+                if (ps.motorcycle != null) setMotorcycleIndicator(ps.motorcycle);
+            }
+
+            // Server status override (for test sweeps)
+            if (s.serverStatusOverride) {
+                if (s.serverStatusOverride.timestamp != null) updateSaveTimestamp(s.serverStatusOverride.timestamp);
+                if (s.serverStatusOverride.online != null) setServerOnline(s.serverStatusOverride.online);
+            }
+
+            // Stat overrides (for test sweeps — bypasses save-file derived values)
+            if (s.statOverrides) {
+                var ov = s.statOverrides;
+                if (ov.koroks != null) setValue('span-number-koroks', ov.koroks);
+                if (ov.locations != null) setValue('span-number-locations', ov.locations);
+                if (ov.shrines != null) setValue('span-number-shrines', ov.shrines);
+                if (ov.shrinesCompleted != null) setValue('span-number-shrines-completed', ov.shrinesCompleted);
+                if (ov.towers != null) setValue('span-number-towers', ov.towers);
+                if (ov.divineBeasts != null) setValue('span-number-divine-beasts', ov.divineBeasts);
+            }
+
+            // Test mode banner — testMode is a string (phase label) or falsy
+            var banner = document.getElementById('test-banner');
+            if (banner) banner.textContent = s.testMode ? ('⚠ ' + s.testMode) : '';
             document.body.classList.toggle('test-mode', !!s.testMode);
 
+            _prevAppliedState = s;
             _lastStateVersion = s.stateVersion || 0;
         }
 
@@ -803,15 +874,23 @@ window.addEventListener(
         pollMtime();
         setInterval(pollMtime, 10000);
 
-        // SSE — react to server state changes immediately without waiting for the poll
+        // SSE — react to server state changes immediately without waiting for the poll.
+        // Full state is included in the event payload so no extra fetch is needed.
         var _sseSource = new EventSource('/api/events');
         _sseSource.addEventListener('state-change', function (e) {
             var data = JSON.parse(e.data);
             if (typeof data.stateVersion === 'number' && data.stateVersion !== _lastStateVersion) {
-                syncStateFromServer().then(function (s) {
-                    applyState(s, true, false);
-                });
+                if (data.state) {
+                    applyState(data.state, true, false);
+                } else {
+                    syncStateFromServer().then(function (s) {
+                        applyState(s, true, false);
+                    });
+                }
             }
+        });
+        _sseSource.addEventListener('reload-save', function () {
+            loadSaveFromServer();
         });
 
         function setServerOnline(online) {
@@ -1352,6 +1431,59 @@ function setMotorcycleIndicator(owned) {
     var el = document.getElementById('stat-motorcycle-light');
     if (el)
         el.className = 'motorcycle-light ' + (owned ? 'owned' : 'not-owned');
+}
+
+// Shared AudioContext — created and resumed on first user gesture to satisfy
+// browser autoplay policy. Reused for all subsequent tones.
+var _audioCtx = null;
+function _getAudioCtx() {
+    if (!_audioCtx) {
+        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+    }
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    return _audioCtx;
+}
+// Warm up the AudioContext on first user interaction so SSE-triggered tones work.
+document.addEventListener('click', _getAudioCtx, { once: false, passive: true });
+document.addEventListener('keydown', _getAudioCtx, { once: false, passive: true });
+
+// Play a short soothing tone for a given change type.
+// Each type has a distinct pitch and envelope. Throttled per-key to avoid stacking.
+var _toneThrottle = {};
+var _toneConfigs = {
+    mapStats:    { freq: 523.25, type: 'sine',     attack: 0.01, sustain: 0.12, decay: 0.35 }, // C5
+    playerStats: { freq: 392.00, type: 'sine',     attack: 0.01, sustain: 0.10, decay: 0.40 }, // G4
+    sidebarOn:   { freq: 659.25, type: 'triangle', attack: 0.01, sustain: 0.08, decay: 0.30 }, // E5
+    sidebarOff:  { freq: 293.66, type: 'triangle', attack: 0.01, sustain: 0.08, decay: 0.30 }, // D4
+    lastUpdate:  { freq: 440.00, type: 'sine',     attack: 0.02, sustain: 0.15, decay: 0.45 }, // A4
+};
+function playTone(key) {
+    if (_toneThrottle[key]) return;
+    _toneThrottle[key] = true;
+    setTimeout(function () { _toneThrottle[key] = false; }, 150);
+    var cfg = _toneConfigs[key];
+    if (!cfg) return;
+    var ctx = _getAudioCtx();
+    if (!ctx || ctx.state !== 'running') return;
+    // During test mode use staccato envelope (1/4 duration); normal play is full length.
+    var testing = document.body.classList.contains('test-mode');
+    var attack  = testing ? cfg.attack * 0.5 : cfg.attack;
+    var sustain = testing ? cfg.sustain * 0.25 : cfg.sustain;
+    var decay   = testing ? cfg.decay * 0.25 : cfg.decay;
+    try {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = cfg.type;
+        osc.frequency.value = cfg.freq;
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + attack);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime + attack + sustain);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + attack + sustain + decay);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + attack + sustain + decay);
+    } catch (e) { /* oscillator scheduling failed */ }
 }
 
 // Map pan and zoom functionality

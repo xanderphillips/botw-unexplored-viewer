@@ -148,13 +148,25 @@ POST   /api/state/dismissed       { type: "korok"|"location", name }
 DELETE /api/state/dismissed/all
 ```
 
+#### Test Runner
+
+```
+POST /api/test/run   (auth required)
+```
+
+Triggers the server-side UI test suite. The server animates all API-controllable state in five phases — sidebar toggles, map stat sweeps, player stat sweeps, last-update timestamp and status light, player tracking and quadrant moves — broadcasting each change via SSE so the browser reflects every step in real time. Returns `{ ok, results }` when complete and automatically restores all state to pre-test values.
+
 #### Real-time Updates (SSE)
 
 ```
 GET /api/events   (no auth required)
 ```
 
-The browser subscribes to this Server-Sent Events stream. Any API write immediately pushes a `state-change` event to all connected browsers, so the UI reflects changes without waiting for the 10-second poll cycle.
+The browser subscribes to this Server-Sent Events stream. Any API write immediately pushes a `state-change` event to all connected browsers, so the UI reflects changes without waiting for the 10-second poll cycle. A `reload-save` event triggers the browser to re-fetch and re-parse the save file, used after the test runner completes to restore live save data.
+
+#### Audio Feedback
+
+The browser plays a short oscillator tone whenever key state changes arrive via SSE — distinct pitches for map stat changes, player stat changes, sidebar items being shown or hidden, and last-update/status changes. Tones are generated entirely via the Web Audio API (no audio files). During test runs the envelope is shortened to a staccato click so rapid sweeps don't produce overlapping sounds.
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
 

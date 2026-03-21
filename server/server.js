@@ -108,9 +108,11 @@ app.get('/api/config', (req, res) => {
 
 const sseClients = new Set();
 
-function broadcastStateChange(stateVersion) {
+function broadcastStateChange(nextState) {
     if (sseClients.size === 0) return;
-    const msg = `event: state-change\ndata: ${JSON.stringify({ stateVersion })}\n\n`;
+    // Include full state in the event so browsers can apply it immediately
+    // without a follow-up GET /api/state round-trip.
+    const msg = `event: state-change\ndata: ${JSON.stringify({ stateVersion: nextState.stateVersion, state: nextState })}\n\n`;
     sseClients.forEach((client) => {
         try {
             client.write(msg);
@@ -123,8 +125,22 @@ function broadcastStateChange(stateVersion) {
 // Wrap writeState so every state mutation triggers an SSE broadcast
 function writeStateAndBroadcast(patch) {
     const next = writeState(patch);
-    broadcastStateChange(next.stateVersion);
+    broadcastStateChange(next);
     return next;
+}
+
+// Tell all connected browsers to reload their save file data from /data/game_data.sav.
+// Used after test completion so stats revert to actual in-game values.
+function broadcastReloadSave() {
+    if (sseClients.size === 0) return;
+    const msg = `event: reload-save\ndata: {}\n\n`;
+    sseClients.forEach((client) => {
+        try {
+            client.write(msg);
+        } catch {
+            sseClients.delete(client);
+        }
+    });
 }
 
 // GET /api/events — SSE stream; pushes state-change events on any state mutation
@@ -180,14 +196,68 @@ app.patch('/api/state/hidden-services', requireApiKey, (req, res) => {
 });
 
 // PATCH /api/state/test-mode — show or hide the testing banner in the browser
-// Body: { enabled: boolean }
+// Body: { enabled: boolean, phase?: string }
+// When enabled, testMode stores the phase label shown in the banner.
 app.patch('/api/state/test-mode', requireApiKey, (req, res) => {
-    const { enabled } = req.body || {};
+    const { enabled, phase } = req.body || {};
     if (typeof enabled !== 'boolean') {
         res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
         return;
     }
-    res.json({ ok: true, state: writeStateAndBroadcast({ testMode: enabled }) });
+    const label = enabled ? (typeof phase === 'string' && phase ? phase : 'TEST MODE ACTIVE') : '';
+    res.json({ ok: true, state: writeStateAndBroadcast({ testMode: label }) });
+});
+
+// PATCH /api/state/player-position — override player position for testing
+// Body: { x: number, z: number }  (BotW world coordinates)
+app.patch('/api/state/player-position', requireApiKey, (req, res) => {
+    const { x, z } = req.body || {};
+    if (typeof x !== 'number' || typeof z !== 'number') {
+        res.status(400).json({ ok: false, error: 'Body must include x and z (numbers)' });
+        return;
+    }
+    res.json({ ok: true, state: writeStateAndBroadcast({ playerPositionOverride: { x, z } }) });
+});
+
+// DELETE /api/state/player-position — clear player position override
+app.delete('/api/state/player-position', requireApiKey, (req, res) => {
+    res.json({ ok: true, state: writeStateAndBroadcast({ playerPositionOverride: null }) });
+});
+
+// PUT /api/state/stat-overrides — override stat display values for testing
+// Body: { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } (all optional numbers)
+app.put('/api/state/stat-overrides', requireApiKey, (req, res) => {
+    const { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } = req.body || {};
+    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } }) });
+});
+
+// DELETE /api/state/stat-overrides — clear stat overrides
+app.delete('/api/state/stat-overrides', requireApiKey, (req, res) => {
+    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: null }) });
+});
+
+// PUT /api/state/player-stat-overrides — override player stat display values for testing
+// Body: { hearts, stamina, playtime, rupees, motorcycle } (all optional)
+app.put('/api/state/player-stat-overrides', requireApiKey, (req, res) => {
+    const { hearts, stamina, playtime, rupees, motorcycle } = req.body || {};
+    res.json({ ok: true, state: writeStateAndBroadcast({ playerStatOverrides: { hearts, stamina, playtime, rupees, motorcycle } }) });
+});
+
+// DELETE /api/state/player-stat-overrides — clear player stat overrides
+app.delete('/api/state/player-stat-overrides', requireApiKey, (req, res) => {
+    res.json({ ok: true, state: writeStateAndBroadcast({ playerStatOverrides: null }) });
+});
+
+// PUT /api/state/server-status-override — override server status dot and timestamp display
+// Body: { timestamp: number (ms), online: boolean }
+app.put('/api/state/server-status-override', requireApiKey, (req, res) => {
+    const { timestamp, online } = req.body || {};
+    res.json({ ok: true, state: writeStateAndBroadcast({ serverStatusOverride: { timestamp, online } }) });
+});
+
+// DELETE /api/state/server-status-override — clear server status override
+app.delete('/api/state/server-status-override', requireApiKey, (req, res) => {
+    res.json({ ok: true, state: writeStateAndBroadcast({ serverStatusOverride: null }) });
 });
 
 // PATCH /api/state/track-player — enable or disable player position tracking
@@ -450,6 +520,26 @@ if (process.env.DEBUG) app.get('/api', (req, res) => {
             res.json(parseSaveMetrics(data));
         });
     });
+});
+
+// POST /api/test/run — run the full server-side UI test suite
+// Long-running (~30s); broadcasts SSE updates throughout so the browser animates live.
+let _testRunning = false;
+app.post('/api/test/run', requireApiKey, async (req, res) => {
+    if (_testRunning) {
+        res.status(409).json({ ok: false, error: 'Test already running' });
+        return;
+    }
+    _testRunning = true;
+    try {
+        const { runTest } = require('./test');
+        const results = await runTest({ writeStateAndBroadcast, readState, broadcastReloadSave });
+        res.json({ ok: true, results });
+    } catch (e) {
+        res.status(500).json({ ok: false, error: e.message });
+    } finally {
+        _testRunning = false;
+    }
 });
 
 // Export app for Supertest integration tests

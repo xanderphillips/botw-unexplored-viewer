@@ -19,7 +19,7 @@ const DEFAULT_STATE = {
     stateVersion: 0,
     hiddenTypes: [],
     hiddenServices: [],
-    testMode: false,
+    testMode: '',
     trackPlayer: false,
     trackZoom: 15,
     mapView: {
@@ -30,7 +30,11 @@ const DEFAULT_STATE = {
     dismissedWaypoints: {
         koroks: [],
         locations: []
-    }
+    },
+    playerPositionOverride: null,
+    statOverrides: null,
+    playerStatOverrides: null,
+    serverStatusOverride: null
 };
 
 function readState() {

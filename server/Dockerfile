@@ -12,6 +12,7 @@ RUN npm install
 # Copy server files (from server/ directory relative to build context)
 COPY server/server.js ./
 COPY server/state.js ./
+COPY server/test.js ./
 
 # Copy static files from parent directory
 COPY index.html ./
