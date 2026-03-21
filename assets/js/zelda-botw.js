@@ -13,6 +13,7 @@
  */
 var currentEditingItem = 0;
 var locationValues = {};
+var _saveHashMap = null;
 
 var shrines = {};
 var towers = {};
@@ -20,6 +21,43 @@ var divineBeasts = {};
 var labos = {};
 var remainingWarps = {};
 var shrinesCompleted = 0;
+var totalShrines = 0;
+var totalTowers = 0;
+var totalDivineBeasts = 0;
+var totalShrineCompletions = 0;
+
+var _knownVillages = [
+    'Location_Hateno',
+    'Location_Kakariko',
+    'Location_Rito',
+    'Location_Goron',
+    'Location_Gerudo',
+    'Location_Taura',
+    'Location_UMiiVillage',
+    'Location_WhiteZora',
+    'Location_Cokiri'
+];
+var _knownSettlements = [
+    'Location_AdeyaVillage',
+    'Location_ChirakaVillage',
+    'Location_GarakishiVillage',
+    'Location_ShinyarkiVillage',
+    'Location_TabantaVillage',
+    'Location_RonronCity'
+];
+var _landmarkTypes = [
+    'hatago',
+    'village',
+    'settlement',
+    'great_fairy',
+    'goddess',
+    'castle',
+    'shop_bougu',
+    'shop_jewel',
+    'shop_yorozu',
+    'shop_color',
+    'yadoya'
+];
 
 SavegameEditor = {
     Name: 'The legend of Zelda: Breath of the wild',
@@ -80,20 +118,29 @@ SavegameEditor = {
 
     /* private functions */
 
+    _buildHashMap: function () {
+        _saveHashMap = {};
+        for (var i = 0x0c; i < tempFile.fileSize - 4; i += 8) {
+            var h = tempFile.readU32(i);
+            if (!_saveHashMap.hasOwnProperty(h)) {
+                _saveHashMap[h] = { offset: i, value: tempFile.readU32(i + 4) };
+            }
+        }
+    },
+
     _searchHash: function (hash) {
-        for (var i = 0x0c; i < tempFile.fileSize; i += 8)
-            if (hash === tempFile.readU32(i)) return i;
-        return false;
+        if (_saveHashMap && _saveHashMap.hasOwnProperty(hash)) return _saveHashMap[hash].offset;
+        return -1;
     },
 
     _readFromHash: function (hash) {
         var offset = this._searchHash(hash);
-        if (typeof offset === 'number') return tempFile.readU32(offset + 4);
+        if (offset !== -1) return tempFile.readU32(offset + 4);
         return false;
     },
     _writeValueAtHash: function (hash, val) {
         var offset = this._searchHash(hash);
-        if (typeof offset === 'number') this._writeValue(offset + 4, val);
+        if (offset !== -1) this._writeValue(offset + 4, val);
     },
 
     _getOffsets: function (v) {
@@ -159,12 +206,9 @@ SavegameEditor = {
     /* load function */
     load: function () {
         tempFile.fileName = 'game_data.sav';
+        this._buildHashMap();
 
         /* prepare viewer */
-        setValue(
-            'span-number-koroks',
-            tempFile.readU32(this.Offsets.KOROK_SEED_COUNTER)
-        );
 
         locationValues.notFound = {
             koroks: {},
@@ -192,29 +236,9 @@ SavegameEditor = {
             this._getCompletedShrineIndices(shrineCompletions);
         shrinesCompleted = Object.keys(completedIndices).length;
 
-        window.localStorage.setItem(
-            'botw-unexplored-viewer',
-            JSON.stringify(locationValues)
-        );
-
-        setValue('span-number-locations', locationValues.found.locations);
-        setValue('span-number-total-locations', 226);
-        setValue('span-number-shrines', locationValues.found.shrines);
-        setValue('span-number-total-shrines', Object.keys(shrines).length);
-        setValue('span-number-shrines-completed', shrinesCompleted);
-        setValue(
-            'span-number-total-shrines-completed',
-            Object.keys(shrineCompletions).length
-        );
-        setValue('span-number-towers', locationValues.found.towers);
-        setValue('span-number-total-towers', Object.keys(towers).length);
-        setValue(
-            'span-number-divine-beasts',
-            locationValues.found.divineBeasts
-        );
-        setValue(
-            'span-number-total-divine-beasts',
-            Object.keys(divineBeasts).length
+        renderStats(
+            tempFile.readU32(this.Offsets.KOROK_SEED_COUNTER),
+            shrinesCompleted
         );
 
         this.drawKorokPaths(locationValues.notFound.koroks);
@@ -239,38 +263,6 @@ SavegameEditor = {
         // Derive discovered locations (all locations minus not-found) and mark them.
         // Assign a location_type based on internal_name for icon selection.
         // Landmark types are always shown regardless of discovery state.
-        var _knownVillages = [
-            'Location_Hateno',
-            'Location_Kakariko',
-            'Location_Rito',
-            'Location_Goron',
-            'Location_Gerudo',
-            'Location_Taura',
-            'Location_UMiiVillage',
-            'Location_WhiteZora',
-            'Location_Cokiri'
-        ];
-        var _knownSettlements = [
-            'Location_AdeyaVillage',
-            'Location_ChirakaVillage',
-            'Location_GarakishiVillage',
-            'Location_ShinyarkiVillage',
-            'Location_TabantaVillage',
-            'Location_RonronCity'
-        ];
-        var landmarkTypes = [
-            'hatago',
-            'village',
-            'settlement',
-            'great_fairy',
-            'goddess',
-            'castle',
-            'shop_bougu',
-            'shop_jewel',
-            'shop_yorozu',
-            'shop_color',
-            'yadoya'
-        ];
         var discoveredLocations = {};
         for (var _hash in locations) {
             var _loc = locations[_hash];
@@ -295,7 +287,7 @@ SavegameEditor = {
             else if (_n.indexOf('ShopColor') !== -1) _type = 'shop_color';
             else if (_n.indexOf('ShopYadoya') !== -1) _type = 'yadoya';
 
-            var isLandmark = landmarkTypes.indexOf(_type) !== -1;
+            var isLandmark = _landmarkTypes.indexOf(_type) !== -1;
             if (
                 !locationValues.notFound.locations[_loc.internal_name] ||
                 isLandmark
@@ -333,7 +325,7 @@ SavegameEditor = {
 
         // Player position — three consecutive identical-hash pairs: [hash,X] [hash,Y] [hash,Z]
         var _pos = this._searchHash(0xa40ba103);
-        if (_pos !== false) {
+        if (_pos !== -1) {
             var playerX = tempFile.readF32(_pos + 4); // first  pair value = X (east/west)
             // _pos+8 = second hash, _pos+12 = Y (height) — skip
             var playerZ = tempFile.readF32(_pos + 20); // third pair value = Z (north/south)
@@ -356,10 +348,10 @@ SavegameEditor = {
         // Player stats — each searched independently
         var _sh;
         _sh = this._searchHash(0x2906f327); // MAX_HEARTS — U32 quarter-heart units (÷4 = displayed hearts)
-        if (_sh !== false)
+        if (_sh !== -1)
             setValue('span-stat-hearts', tempFile.readU32(_sh + 4) / 4);
         _sh = this._searchHash(0x3adff047); // MAX_STAMINA — stored as F32, units of 1/1000 wheel
-        if (_sh !== false) {
+        if (_sh !== -1) {
             var _sv = tempFile.readF32(_sh + 4);
             setValue(
                 'span-stat-stamina',
@@ -367,66 +359,50 @@ SavegameEditor = {
             );
         }
         _sh = this._searchHash(0x73c29681); // PLAYTIME
-        if (_sh !== false)
+        if (_sh !== -1)
             setValue(
                 'span-stat-playtime',
                 formatPlaytime(tempFile.readU32(_sh + 4))
             );
         _sh = this._searchHash(0x23149bf8); // RUPEES
-        if (_sh !== false)
+        if (_sh !== -1)
             setValue(
                 'span-stat-rupees',
                 tempFile.readU32(_sh + 4).toLocaleString()
             );
         _sh = this._searchHash(0xc9328299); // MOTORCYCLE
-        if (_sh !== false)
+        if (_sh !== -1)
             setMotorcycleIndicator(tempFile.readU32(_sh + 4) > 0);
 
-        addWaypointListeners();
         applyHiddenStates();
         applyServiceHiddenStates();
+        _saveHashMap = null; // release after load completes — rebuilt on next load
     },
 
     // based on the load() method in https://github.com/marcrobledo/savegame-editors/blob/master/zelda-botw-master/zelda-botw-master.js
     _notFoundLocations: function (hashObjects, key = 'koroks') {
-        tempFile.fileName = 'game_data.sav';
-
-        var previousHashValue = 0;
-        for (var offset = 0x0c; offset < tempFile.fileSize - 4; offset += 8) {
-            var hashValue = tempFile.readU32(offset);
-
-            if (hashValue === previousHashValue) continue;
-
-            if (hashObjects[hashValue]) {
-                if (!tempFile.readU32(offset + 4)) {
-                    locationValues.notFound[key][
-                        hashObjects[hashValue]['internal_name']
-                    ] = {
-                        display_name: hashObjects[hashValue]['display_name'],
-                        x: hashObjects[hashValue]['x'],
-                        y: hashObjects[hashValue]['y'],
-                        offset: offset
-                    };
-                } else {
-                    locationValues.found[key]++;
-                }
+        for (var hash in hashObjects) {
+            var entry = _saveHashMap[hash];
+            if (!entry) continue;
+            if (!entry.value) {
+                locationValues.notFound[key][hashObjects[hash].internal_name] = {
+                    display_name: hashObjects[hash].display_name,
+                    x: hashObjects[hash].x,
+                    y: hashObjects[hash].y,
+                    offset: entry.offset
+                };
+            } else {
+                locationValues.found[key]++;
             }
-
-            previousHashValue = hashValue;
         }
     },
 
     // Count how many entries in hashObjects have a non-zero save flag
     _countCompleted: function (hashObjects) {
         var count = 0;
-        var previousHashValue = 0;
-        for (var offset = 0x0c; offset < tempFile.fileSize - 4; offset += 8) {
-            var hashValue = tempFile.readU32(offset);
-            if (hashValue === previousHashValue) continue;
-            if (hashObjects[hashValue]) {
-                if (tempFile.readU32(offset + 4)) count++;
-            }
-            previousHashValue = hashValue;
+        for (var hash in hashObjects) {
+            var entry = _saveHashMap[hash];
+            if (entry && entry.value) count++;
         }
         return count;
     },
@@ -434,20 +410,15 @@ SavegameEditor = {
     // Returns an object mapping NNN → true for each Clear_DungeonNNN flag that is set
     _getCompletedShrineIndices: function (hashObjects) {
         var indices = {};
-        var previousHashValue = 0;
-        for (var offset = 0x0c; offset < tempFile.fileSize - 4; offset += 8) {
-            var hashValue = tempFile.readU32(offset);
-            if (hashValue === previousHashValue) continue;
-            if (hashObjects[hashValue]) {
-                if (tempFile.readU32(offset + 4)) {
-                    var idx = hashObjects[hashValue].internal_name.replace(
-                        'Clear_Dungeon',
-                        ''
-                    );
-                    indices[idx] = true;
-                }
+        for (var hash in hashObjects) {
+            var entry = _saveHashMap[hash];
+            if (entry && entry.value) {
+                var idx = hashObjects[hash].internal_name.replace(
+                    'Clear_Dungeon',
+                    ''
+                );
+                indices[idx] = true;
             }
-            previousHashValue = hashValue;
         }
         return indices;
     },
@@ -455,6 +426,7 @@ SavegameEditor = {
     // Mark the map with not found Koroks or Locations
     markMap(mapObjects, className) {
         var map = document.getElementById('map-container');
+        var fragment = document.createDocumentFragment();
 
         for (var internal_name in mapObjects) {
             var waypoint = document.createElement('div');
@@ -476,12 +448,15 @@ SavegameEditor = {
                 mapObjects[internal_name].display_name
             );
 
-            map.appendChild(waypoint);
+            fragment.appendChild(waypoint);
         }
+
+        map.appendChild(fragment);
     },
 
     drawKorokPaths(notFoundKoroks) {
         var group = document.getElementById('path-group');
+        var fragment = document.createDocumentFragment();
 
         for (var internal_name in notFoundKoroks) {
             if (typeof korokPaths[internal_name] == 'undefined') continue;
@@ -512,8 +487,10 @@ SavegameEditor = {
 
             path.setAttribute('class', 'line ' + internal_name);
 
-            group.appendChild(path);
+            fragment.appendChild(path);
         }
+
+        group.appendChild(fragment);
     },
 
     /* save function */
@@ -567,6 +544,12 @@ window.addEventListener(
                 remainingWarps[_warpHash] = warps[_warpHash];
             }
         }
+
+        // Cache totals — these are constants derived from map-locations.js, never change at runtime
+        totalShrines = Object.keys(shrines).length;
+        totalTowers = Object.keys(towers).length;
+        totalDivineBeasts = Object.keys(divineBeasts).length;
+        totalShrineCompletions = Object.keys(shrineCompletions).length;
 
         window.addEventListener('scroll', onScroll, false);
 
@@ -725,31 +708,7 @@ window.addEventListener(
                 };
             }
 
-            window.localStorage.setItem(
-                'botw-unexplored-viewer',
-                JSON.stringify(locationValues)
-            );
-
-            setValue('span-number-koroks', locationValues.found.koroks);
-            setValue('span-number-locations', locationValues.found.locations);
-            setValue('span-number-total-locations', 226);
-            setValue('span-number-shrines', locationValues.found.shrines);
-            setValue('span-number-total-shrines', Object.keys(shrines).length);
-            setValue('span-number-shrines-completed', 0);
-            setValue(
-                'span-number-total-shrines-completed',
-                Object.keys(shrineCompletions).length
-            );
-            setValue('span-number-towers', locationValues.found.towers);
-            setValue('span-number-total-towers', Object.keys(towers).length);
-            setValue(
-                'span-number-divine-beasts',
-                locationValues.found.divineBeasts
-            );
-            setValue(
-                'span-number-total-divine-beasts',
-                Object.keys(divineBeasts).length
-            );
+            renderStats(locationValues.found.koroks, 0);
 
             SavegameEditor.drawKorokPaths(locationValues.notFound.koroks);
 
@@ -774,6 +733,7 @@ window.addEventListener(
         });
 
         initRegionLabels();
+        initWaypointListeners();
     },
     false
 );
@@ -1005,18 +965,22 @@ function applyServiceHiddenStates() {
     );
 }
 
-// Add event Listeners for Waypoints
-function addWaypointListeners() {
-    [].forEach.call(document.querySelectorAll('.waypoint'), function (element) {
-        if (!element.classList.contains('warp')) {
-            element.addEventListener('click', function () {
-                removeWaypoint(element);
-            });
-        }
-        element.addEventListener('mouseenter', function () {
-            showWaypointTooltip(element);
-        });
-        element.addEventListener('mouseleave', hideWaypointTooltip);
+// Set up delegated event listeners on #map-container — called once on page load.
+// Handles click (dismiss), mouseover (tooltip), and mouseout (hide tooltip) for all waypoints
+// without registering individual listeners per element.
+function initWaypointListeners() {
+    var container = document.getElementById('map-container');
+    container.addEventListener('click', function (e) {
+        var wp = e.target.closest('.waypoint');
+        if (wp && !wp.classList.contains('warp')) removeWaypoint(wp);
+    });
+    container.addEventListener('mouseover', function (e) {
+        var wp = e.target.closest('.waypoint');
+        if (wp) showWaypointTooltip(wp);
+    });
+    container.addEventListener('mouseout', function (e) {
+        var wp = e.target.closest('.waypoint');
+        if (wp && !wp.contains(e.relatedTarget)) hideWaypointTooltip();
     });
 }
 
@@ -1098,11 +1062,6 @@ function removeWaypoint(element) {
 
     setValue('span-number-' + type, locationValues.found[type]);
 
-    window.localStorage.setItem(
-        'botw-unexplored-viewer',
-        JSON.stringify(locationValues)
-    );
-
     element.remove();
 
     if (type == 'koroks') {
@@ -1116,15 +1075,30 @@ function removeWaypoint(element) {
     }
 }
 
+// Render stat display values into the toolbar spans
+function renderStats(korokCount, shrinesCompletedCount) {
+    setValue('span-number-koroks', korokCount);
+    setValue('span-number-locations', locationValues.found.locations);
+    setValue('span-number-total-locations', 226);
+    setValue('span-number-shrines', locationValues.found.shrines);
+    setValue('span-number-total-shrines', totalShrines);
+    setValue('span-number-shrines-completed', shrinesCompletedCount);
+    setValue('span-number-total-shrines-completed', totalShrineCompletions);
+    setValue('span-number-towers', locationValues.found.towers);
+    setValue('span-number-total-towers', totalTowers);
+    setValue('span-number-divine-beasts', locationValues.found.divineBeasts);
+    setValue('span-number-total-divine-beasts', totalDivineBeasts);
+}
+
 // Remove all Waypoints
 function removeAllWaypoints() {
     hideWaypointTooltip();
-    [].forEach.call(
-        document.querySelectorAll('.waypoint, .line'),
-        function (element) {
-            element.remove();
-        }
-    );
+    var map = document.getElementById('map-container');
+    var waypoints = map.querySelectorAll('.waypoint');
+    for (var i = 0; i < waypoints.length; i++) {
+        waypoints[i].remove();
+    }
+    document.getElementById('path-group').innerHTML = '';
 }
 
 // Place (or replace) the player position marker on the map.
