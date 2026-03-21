@@ -169,7 +169,7 @@ The browser plays a short oscillator tone whenever key state changes arrive via 
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
 
-Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Region label coordinates and English place names sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar).
+Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Region label coordinates and English place names sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar). Original extension work by Eric Defore, on whose foundation this project was built.
 
 ## Docker Setup
 

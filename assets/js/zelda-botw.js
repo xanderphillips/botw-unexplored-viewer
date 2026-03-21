@@ -2,7 +2,7 @@
  * zelda-botw.js — Main application logic for the BotW Unexplored Area Viewer
  *
  * Built on the save game editor framework by Marc Robledo (2017–2018).
- * Extended by Eric Defore and Xanderphillips to add:
+ * Extended by Xanderphillips to add:
  *   - Auto-loading of the save file from the Express server
  *   - Interactive left sidebar with hover/click map highlighting
  *   - Player position marker with shrine interior detection
