@@ -26,7 +26,7 @@ Each metric row shows the stat label on the left and its count on the right, wit
 
 ### Services
 
-A **Services** section in the sidebar lists nine location subtypes that can be toggled independently: Stable, Village, Settlement, Great Fairy, Goddess Statue, Inn, General Store, Armor Shop, Dye Shop, and Arrow Shop. Each toggle shows or hides that icon type on the map and persists its state across browser sessions. Services are a sub-filter of Locations (Visited) — only discovered locations of the selected types are shown.
+A **Services** section in the sidebar lists nine location subtypes that can be toggled independently: Stable, Village, Settlement, Great Fairy, Goddess Statue, Inn, General Store, Armor Shop, and Jewelry Shop. Each toggle shows or hides that icon type on the map and persists its state across browser sessions. Services are a sub-filter of Locations (Visited) — only discovered locations of the selected types are shown.
 - **Player Position** places a glowing white marker on the map at your character's last saved location. When the save was made inside a shrine, the marker appears at the shrine's overworld entrance rather than its local interior coordinates (detected via the MAP save flag)
 
 ### Track Player
@@ -50,7 +50,7 @@ Region names are rendered as text overlays directly on the map and appear at zoo
 
 - **Zoomed out** — 15 main tower regions (Hebra, Akkala, Lanayru, etc.) in large uppercase text
 - **Medium zoom** — 8 broad named regions (Central Hyrule, Necluda, Faron, etc.)
-- **Zoomed in** — 24 sub-regions and areas (Hyrule Field, Eldin Mountains, Gerudo Desert, etc.)
+- **Zoomed in** — 23 sub-regions and areas (Hyrule Field, Eldin Mountains, Gerudo Desert, etc.), with further fine-grained place names appearing at higher zoom levels
 
 Labels scale inversely with zoom so they remain a consistent size on screen. Coordinate and name data sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar).
 
