@@ -31,13 +31,13 @@ jobs:
         run: npm run build:windows
 
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/*.exe
 
       - name: Upload artifact (branch builds)
         if: github.ref_type == 'branch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BotW-Live-Savegame-Monitor
           path: dist/*.exe
