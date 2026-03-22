@@ -97,6 +97,87 @@ function killOtherInstances() {
     }
 }
 
+/**
+ * Checks AppData state and handles version/schema migration.
+ * Returns 'ok' to continue startup, 'setup' to open setup window, or 'quit' to exit.
+ */
+async function checkAndMigrateVersion() {
+    const configExists  = fs.existsSync(CONFIG_FILE);
+    const versionExists = fs.existsSync(VERSION_FILE);
+
+    // Both absent: genuine first run
+    if (!configExists && !versionExists) return 'setup';
+
+    // version.json present, config.json absent: config deleted manually — treat as first run
+    if (!configExists && versionExists) return 'setup';
+
+    // config.json present, version.json absent: crash recovery or pre-version install
+    if (configExists && !versionExists) {
+        writeVersionFile();
+        return 'ok';
+    }
+
+    // Both present: compare versions
+    const stored = readVersionFile();
+    if (!stored) {
+        // Corrupt version.json — treat as routine upgrade, rewrite it
+        writeVersionFile();
+        return 'ok';
+    }
+
+    if (stored.schemaVersion > SCHEMA_VERSION) {
+        // Downgrade
+        const { response } = await require('electron').dialog.showMessageBox({
+            type: 'warning',
+            title: 'BotW Live Savegame Monitor',
+            message: 'Older version detected',
+            detail: 'This version is older than your existing install. Settings cannot be carried forward.\n\nTo recover, manually download the latest version.',
+            buttons: ['Reset & Continue', 'Quit'],
+            defaultId: 1,
+            cancelId: 1,
+        });
+        if (response === 1) return 'quit';
+        wipeAppData();
+        return 'setup';
+    }
+
+    if (stored.schemaVersion < SCHEMA_VERSION) {
+        // Schema upgrade
+        const { response } = await require('electron').dialog.showMessageBox({
+            type: 'info',
+            title: 'BotW Live Savegame Monitor',
+            message: 'Configuration format updated',
+            detail: 'This update changes the configuration format. Your settings will be reset.',
+            buttons: ['Reset & Continue', 'Quit'],
+            defaultId: 0,
+            cancelId: 1,
+        });
+        if (response === 1) return 'quit';
+        wipeAppData();
+        return 'setup';
+    }
+
+    // Schema matches — routine upgrade or same version
+    if (stored.appVersion !== app.getVersion()) {
+        for (const f of OBSOLETE_APPDATA_FILES) {
+            try { fs.unlinkSync(path.join(APP_DATA_DIR, f)); } catch { /* already gone */ }
+        }
+        writeVersionFile();
+    }
+    return 'ok';
+}
+
+function wipeAppData() {
+    try {
+        const entries = fs.readdirSync(APP_DATA_DIR);
+        for (const entry of entries) {
+            fs.rmSync(path.join(APP_DATA_DIR, entry), { recursive: true, force: true });
+        }
+    } catch (e) {
+        logError('wipeAppData failed: ' + e.message);
+    }
+}
+
 // ── Server ────────────────────────────────────────────────────────────────────
 
 // IMPORTANT: STATE_DIR and STATIC_ROOT MUST be set before requiring server/server.js.
