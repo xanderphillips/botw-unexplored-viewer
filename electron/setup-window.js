@@ -33,7 +33,6 @@ function openSetupWindow(existingConfig) {
         });
 
         win.setMenu(null);
-        win.webContents.openDevTools({ mode: 'detach' });
         win.loadFile(path.join(__dirname, 'setup.html'));
 
         // IPC: renderer requests folder picker

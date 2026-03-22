@@ -116,9 +116,7 @@ function buildMenu(serverOk) {
 
 function createTray() {
     const iconPath = getIconPath();
-    console.log('Tray icon path:', iconPath, 'exists:', fs.existsSync(iconPath));
     const icon = nativeImage.createFromPath(iconPath);
-    console.log('Icon empty:', icon.isEmpty());
     tray = new Tray(icon);
     tray.setToolTip('BotW Live Savegame Monitor');
     tray.setContextMenu(buildMenu(true));
