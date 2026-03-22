@@ -45,9 +45,9 @@ jobs:
 
       - name: Create GitHub Release (tag builds)
         if: github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.exe
-            dist/latest.yml
-          generate_release_notes: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --generate-notes \
+            dist/*.exe dist/latest.yml
