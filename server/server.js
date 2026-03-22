@@ -31,19 +31,23 @@ app.use(express.json());
 // All six save slots: 0 = manual save, 1–5 = auto-saves.
 // When SAVE_PATH_BASE is set (Windows exe), slots are resolved as
 // <SAVE_PATH_BASE>/<i>/game_data.sav (matching Cemu's layout).
-const SAVE_SLOTS = process.env.SAVE_PATH_BASE
-    ? Array.from({ length: 6 }, (_, i) =>
-          path.join(process.env.SAVE_PATH_BASE, String(i), 'game_data.sav'))
-    : Array.from({ length: 6 }, (_, i) =>
-          path.join(__dirname, `data/game_data_${i}.sav`));
+let _savePathBase = process.env.SAVE_PATH_BASE || null;
+
+function getSaveSlots() {
+    return _savePathBase
+        ? Array.from({ length: 6 }, (_, i) =>
+              path.join(_savePathBase, String(i), 'game_data.sav'))
+        : Array.from({ length: 6 }, (_, i) =>
+              path.join(__dirname, `data/game_data_${i}.sav`));
+}
 
 // Find the most recently modified save slot.
 // Calls callback(filePath, mtimeMs) with the winner, or callback(null, null) if none are readable.
 function getMostRecentSave(callback) {
-    let remaining = SAVE_SLOTS.length;
+    const slots = getSaveSlots(); let remaining = slots.length;
     let bestPath = null;
     let bestMtime = -1;
-    SAVE_SLOTS.forEach((filePath) => {
+    slots.forEach((filePath) => {
         fs.stat(filePath, (err, stats) => {
             if (!err && stats.isFile() && stats.mtimeMs > bestMtime) {
                 bestMtime = stats.mtimeMs;
@@ -533,6 +537,29 @@ app.post('/api/test/run', async (req, res) => {
     }
 });
 
+/**
+ * startServer(port, savePath) — create and start a new http.Server instance.
+ * Returns Promise<{ httpServer, watcher: null }>.
+ * Each call is independent; caller must close the previous httpServer before calling again.
+ * watcher is always null (no fs.watch in this server; included for interface consistency).
+ */
+function startServer(port, savePath) {
+    _savePathBase = savePath;
+    return new Promise((resolve, reject) => {
+        const httpServer = app.listen(port, '0.0.0.0');
+        httpServer.once('listening', () => resolve({ httpServer, watcher: null }));
+        httpServer.once('error', reject);
+    });
+}
+
+/** Close all open SSE connections immediately. Call before httpServer.close(). */
+function drainSseClients() {
+    sseClients.forEach((client) => {
+        try { client.end(); } catch { /* ignore */ }
+    });
+    sseClients.clear();
+}
+
 // Export app for Supertest integration tests
 if (require.main === module) {
     app.listen(PORT, '0.0.0.0', () => {
@@ -540,4 +567,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app };
+module.exports = { app, startServer, drainSseClients };
