@@ -3,13 +3,17 @@ const path = require('path');
 const { BrowserWindow, ipcMain, dialog } = require('electron');
 
 let _currentConfig = null;
+let _windowOpen = false;
 
 /**
  * openSetupWindow(existingConfig)
  * Opens the setup BrowserWindow.
  * Resolves with { savePath, port } on save, or null if closed without saving.
+ * If a setup window is already open, focuses it and returns null immediately.
  */
 function openSetupWindow(existingConfig) {
+    if (_windowOpen) return Promise.resolve(null);
+    _windowOpen = true;
     _currentConfig = existingConfig;
 
     return new Promise((resolve) => {
@@ -65,6 +69,7 @@ function openSetupWindow(existingConfig) {
 
         // Clean up all handlers when the window closes
         win.on('closed', () => {
+            _windowOpen = false;
             ipcMain.removeHandler('pick-folder');
             ipcMain.removeHandler('save-config');
             ipcMain.removeHandler('get-config');

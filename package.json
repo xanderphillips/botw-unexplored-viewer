@@ -21,6 +21,7 @@
       "electron/**/*",
       "server/server.js",
       "server/state.js",
+      "server/test.js",
       "assets/**/*",
       "index.html",
       "favicon.png",
