@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+  <title>BotW Live Savegame Monitor — Setup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      color: #c8d4e8;
+      padding: 24px;
+      user-select: none;
+    }
+    h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #00aacc;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      color: #8090a8;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 5px;
+    }
+    .field { margin-bottom: 16px; }
+    .row { display: flex; gap: 8px; }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      background: #0f1a24;
+      border: 1px solid #1a2a3a;
+      color: #c8d4e8;
+      padding: 7px 10px;
+      font-size: 13px;
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: #00aacc;
+    }
+    input[type="number"] { width: 90px; flex-shrink: 0; }
+    button {
+      background: #0f1a24;
+      border: 1px solid #1a2a3a;
+      color: #c8d4e8;
+      padding: 7px 14px;
+      font-size: 13px;
+      border-radius: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    button:hover { border-color: #00aacc; color: #00aacc; }
+    #save-btn {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      background: #003344;
+      border-color: #00aacc;
+      color: #00aacc;
+      font-weight: 600;
+    }
+    #save-btn:hover { background: #004455; }
+    #error { color: #cc4444; font-size: 12px; margin-top: 10px; display: none; }
+  </style>
+</head>
+<body>
+  <h1>Setup — Save File Location</h1>
+
+  <div class="field">
+    <label>Cemu Save Folder</label>
+    <div class="row">
+      <input type="text" id="save-path" placeholder="C:\Users\...\Cemu\mlc01\usr\save\00050000\101c9400\user\80000001" />
+      <button id="browse-btn">Browse…</button>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Port</label>
+    <input type="number" id="port" value="8080" min="1024" max="65535" />
+  </div>
+
+  <button id="save-btn">Save &amp; Start</button>
+  <div id="error"></div>
+
+  <script>
+    const savePathInput = document.getElementById('save-path');
+    const portInput     = document.getElementById('port');
+    const browseBtn     = document.getElementById('browse-btn');
+    const saveBtn       = document.getElementById('save-btn');
+    const errorDiv      = document.getElementById('error');
+
+    function showError(msg) {
+      errorDiv.textContent = msg;
+      errorDiv.style.display = 'block';
+    }
+    function clearError() {
+      errorDiv.style.display = 'none';
+    }
+
+    // Pre-populate fields with existing config on open
+    window.electronAPI.getConfig().then((cfg) => {
+      if (cfg) {
+        savePathInput.value = cfg.savePath || '';
+        portInput.value     = cfg.port     || 8080;
+      }
+    });
+
+    browseBtn.addEventListener('click', async () => {
+      const chosen = await window.electronAPI.pickFolder();
+      if (chosen) savePathInput.value = chosen;
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      clearError();
+      const savePath = savePathInput.value.trim();
+      const port     = parseInt(portInput.value, 10);
+      if (!savePath) { showError('Save folder is required.'); return; }
+      if (!port || port < 1024 || port > 65535) { showError('Port must be between 1024 and 65535.'); return; }
+      const result = await window.electronAPI.saveConfig({ savePath, port });
+      if (!result.ok) { showError(result.error || 'Failed to save config.'); }
+      // On success the main process closes this window — no action needed here
+    });
+  </script>
+</body>
+</html>

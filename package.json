@@ -2,11 +2,36 @@
   "name": "botw-live-savegame-monitor",
   "version": "1.0.0",
   "description": "A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save). Runs as a Docker container on the same machine as Cemu and is accessible from any browser on your local network.",
-  "main": "index.js",
+  "main": "electron/main.js",
   "scripts": {
     "lint": "eslint assets/js/zelda-botw.js server/server.js server/state.js server/test.js",
     "format": "prettier --write assets/js/zelda-botw.js server/server.js server/state.js server/test.js assets/css/",
-    "format:check": "prettier --check assets/js/zelda-botw.js server/server.js server/state.js server/test.js assets/css/"
+    "format:check": "prettier --check assets/js/zelda-botw.js server/server.js server/state.js server/test.js assets/css/",
+    "build:windows": "node scripts/convert-icon.js && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.xanderphillips.botw-live-savegame-monitor",
+    "productName": "BotW Live Savegame Monitor",
+    "executableName": "botw-ls-monitor",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "server/server.js",
+      "server/state.js",
+      "server/test.js",
+      "assets/**/*",
+      "index.html",
+      "favicon.png",
+      "favicon.ico",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "icon": "favicon.ico"
+    }
   },
   "repository": {
     "type": "git",
@@ -22,9 +47,15 @@
   "homepage": "https://github.com/xanderphillips/botw-live-savegame-monitor#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
+    "png-to-ico": "^3.0.1",
     "prettier": "^3.8.1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }

@@ -1,12 +1,26 @@
 {
-  "name": "botw-unexplored-viewer",
+  "name": "botw-live-savegame-monitor",
   "version": "1.0.0",
-  "description": "BOTW Unexplored Viewer Server",
+  "description": "BOTW Live Savegame Monitor Server",
   "main": "server.js",
+  "bin": "launcher.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build:windows": "npx @yao-pkg/pkg . --targets node18-win-x64 --output ../dist/botw-live-savegame-monitor.exe"
   },
   "dependencies": {
     "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@yao-pkg/pkg": "^5.12.0"
+  },
+  "pkg": {
+    "targets": ["node18-win-x64"],
+    "outputPath": "../dist",
+    "assets": [
+      "../index.html",
+      "../favicon.png",
+      "../assets/**/*"
+    ]
   }
 }

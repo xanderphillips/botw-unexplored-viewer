@@ -1,17 +1,20 @@
 /**
  * state.js — Server-side state persistence for the BotW Unexplored Area Viewer
  *
- * State is stored as JSON in /app/data/state.json (the mounted volume),
- * so it persists across container restarts. Writes are atomic: data is
- * written to a .tmp file first, then renamed over the target, preventing
- * corrupt reads if a write is interrupted.
+ * State is stored as JSON in state.json inside the configured data directory.
+ * In Docker the directory is /app/data (the mounted volume). When running as
+ * a Windows exe, STATE_DIR is set by launcher.js to %APPDATA%\botw-live-savegame-monitor.
+ * Writes are atomic: data is written to a .tmp file first, then renamed over
+ * the target, preventing corrupt reads if a write is interrupted.
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 
-const STATE_FILE = path.join(__dirname, 'data', 'state.json');
+const STATE_DIR = process.env.STATE_DIR || path.join(__dirname, 'data');
+fs.mkdirSync(STATE_DIR, { recursive: true });
+const STATE_FILE = path.join(STATE_DIR, 'state.json');
 const STATE_TMP = STATE_FILE + '.tmp';
 
 const DEFAULT_STATE = {
