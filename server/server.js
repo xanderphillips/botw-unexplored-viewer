@@ -499,8 +499,7 @@ function parseSaveMetrics(buf) {
     return metrics;
 }
 
-// Debug endpoint — only available when DEBUG=1 env var is set
-if (process.env.DEBUG) app.get('/api', (req, res) => {
+app.get('/api', (req, res) => {
     getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
         if (!filePath) {
