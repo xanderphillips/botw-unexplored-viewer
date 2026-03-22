@@ -19,6 +19,7 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
     _isFirstRun    = isFirstRun;
 
     return new Promise((resolve) => {
+        let resolved = false;
         const win = new BrowserWindow({
             width: 520,
             height: 400,
@@ -54,11 +55,15 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
             if (!savePath || typeof savePath !== 'string') {
                 return { ok: false, error: 'Invalid save path' };
             }
+            if (!path.isAbsolute(savePath.trim())) {
+                return { ok: false, error: 'Save path must be an absolute path' };
+            }
             const p = parseInt(port, 10);
             if (!p || p < 1024 || p > 65535) {
                 return { ok: false, error: 'Invalid port' };
             }
             const saved = { savePath: savePath.trim(), port: p, createShortcut: !!createShortcut };
+            resolved = true;
             resolve(saved);
             win.close();
             return { ok: true };
@@ -79,7 +84,7 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
             ipcMain.removeHandler('save-config');
             ipcMain.removeHandler('get-config');
             ipcMain.removeHandler('get-is-first-run');
-            resolve(null); // no-op if already resolved via save
+            if (!resolved) resolve(null);
         });
     });
 }

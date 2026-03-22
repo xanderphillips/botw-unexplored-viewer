@@ -147,7 +147,7 @@
         portInput.value     = cfg.port     || 8080;
       }
       shortcutCb.checked = isFirstRun;
-    });
+    }).catch(() => { showError('Failed to load configuration.'); });
 
     browseBtn.addEventListener('click', async () => {
       const chosen = await window.electronAPI.pickFolder();
