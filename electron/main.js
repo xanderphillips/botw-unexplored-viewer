@@ -1,5 +1,6 @@
 'use strict';
 const { app, Tray, Menu, shell, nativeImage } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs   = require('fs');
 const os   = require('os');
@@ -194,6 +195,45 @@ function createDesktopShortcut() {
     }
 }
 
+function initAutoUpdater() {
+    // Only run in the portable build — NSIS-installed version does not self-update
+    if (!process.env.PORTABLE_EXECUTABLE_FILE) return;
+
+    autoUpdater.autoDownload = false;
+    autoUpdater.logger = {
+        info:  (msg) => logError('[updater:info] '  + msg),
+        warn:  (msg) => logError('[updater:warn] '  + msg),
+        error: (msg) => logError('[updater:error] ' + msg),
+    };
+    autoUpdater.on('error', (e) => logError('[updater:error] ' + e.message));
+
+    autoUpdater.on('update-available', (info) => {
+        tray.displayBalloon({
+            title:    'BotW Live Savegame Monitor',
+            content:  `Update available: v${info.version} — right-click tray to install`,
+            iconType: 'info',
+        });
+        tray.setContextMenu(buildMenu(true, info.version));
+    });
+
+    autoUpdater.on('update-downloaded', () => {
+        require('electron').dialog.showMessageBox({
+            type:      'info',
+            title:     'BotW Live Savegame Monitor',
+            message:   'Update ready',
+            detail:    'The update has been downloaded. The app will restart to apply it.',
+            buttons:   ['Restart Now'],
+            defaultId: 0,
+        }).then(() => {
+            // Release the lock before quitting so the new exe can acquire it cleanly
+            app.releaseSingleInstanceLock();
+            autoUpdater.quitAndInstall();
+        });
+    });
+
+    autoUpdater.checkForUpdates().catch((e) => logError('[updater] checkForUpdates error: ' + e.message));
+}
+
 // ── Server ────────────────────────────────────────────────────────────────────
 
 // IMPORTANT: STATE_DIR and STATIC_ROOT MUST be set before requiring server/server.js.
@@ -244,17 +284,25 @@ function getIconPath() {
     return path.join(base, 'favicon.ico');
 }
 
-function buildMenu(serverOk) {
+function buildMenu(serverOk, updateVersion = null) {
     const url = currentConfig ? `http://localhost:${currentConfig.port}` : null;
-    return Menu.buildFromTemplate([
+    const items = [
         serverOk && url
             ? { label: 'Open Browser', click: () => shell.openExternal(url) }
             : { label: 'Server error — Reconfigure…', click: reconfigure },
         { type: 'separator' },
         { label: 'Reconfigure…', click: reconfigure },
         { type: 'separator' },
-        { label: 'Quit', click: quit },
-    ]);
+    ];
+    if (updateVersion) {
+        items.push({ label: `Install Update v${updateVersion}…`, click: () => {
+            tray.displayBalloon({ title: 'BotW Live Savegame Monitor', content: 'Downloading update…', iconType: 'info' });
+            autoUpdater.downloadUpdate().catch((e) => logError('[updater] downloadUpdate error: ' + e.message));
+        }});
+        items.push({ type: 'separator' });
+    }
+    items.push({ label: 'Quit', click: quit });
+    return Menu.buildFromTemplate(items);
 }
 
 function createTray() {
