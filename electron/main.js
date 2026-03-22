@@ -85,6 +85,7 @@ function stopExpressServer() {
     return new Promise((resolve) => {
         drainSseClients();
         if (!currentHttpServer) { resolve(); return; }
+        currentHttpServer.closeAllConnections();
         currentHttpServer.close(() => {
             currentHttpServer = null;
             resolve();
