@@ -8,18 +8,20 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #0a0a0f;
+      background: #050810;
       color: #c8d4e8;
-      padding: 24px;
+      padding: 28px;
       user-select: none;
     }
     h1 {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: #00aacc;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
+      padding-left: 10px;
+      border-left: 3px solid #00aacc;
     }
     label {
       display: block;
@@ -27,46 +29,74 @@
       color: #8090a8;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
-    .field { margin-bottom: 16px; }
+    .field { margin-bottom: 18px; }
     .row { display: flex; gap: 8px; }
     input[type="text"], input[type="number"] {
       width: 100%;
-      background: #0f1a24;
+      background: #0a1020;
       border: 1px solid #1a2a3a;
       color: #c8d4e8;
-      padding: 7px 10px;
+      padding: 8px 10px;
       font-size: 13px;
       border-radius: 3px;
       outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
     input[type="text"]:focus, input[type="number"]:focus {
       border-color: #00aacc;
+      box-shadow: 0 0 0 2px rgba(0, 170, 204, 0.15);
     }
     input[type="number"] { width: 90px; flex-shrink: 0; }
     button {
-      background: #0f1a24;
+      background: #0a1020;
       border: 1px solid #1a2a3a;
       color: #c8d4e8;
-      padding: 7px 14px;
+      padding: 8px 14px;
       font-size: 13px;
       border-radius: 3px;
       cursor: pointer;
       white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
     }
     button:hover { border-color: #00aacc; color: #00aacc; }
+    .checkbox-field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .checkbox-field input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: #00aacc;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checkbox-field span {
+      font-size: 13px;
+      color: #c8d4e8;
+      cursor: pointer;
+    }
     #save-btn {
       display: block;
       width: 100%;
-      margin-top: 8px;
-      background: #003344;
+      margin-top: 4px;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, #003a50, #004a60);
       border-color: #00aacc;
       color: #00aacc;
       font-weight: 600;
+      font-size: 13px;
     }
-    #save-btn:hover { background: #004455; }
-    #error { color: #cc4444; font-size: 12px; margin-top: 10px; display: none; }
+    #save-btn:hover { background: linear-gradient(180deg, #004a60, #005a70); }
+    #error {
+      color: #cc4444;
+      font-size: 12px;
+      margin-top: 12px;
+      min-height: 18px;
+    }
   </style>
 </head>
 <body>
@@ -85,6 +115,11 @@
     <input type="number" id="port" value="8080" min="1024" max="65535" />
   </div>
 
+  <div class="checkbox-field">
+    <input type="checkbox" id="shortcut-cb" />
+    <span id="shortcut-label">Create desktop shortcut</span>
+  </div>
+
   <button id="save-btn">Save &amp; Start</button>
   <div id="error"></div>
 
@@ -94,21 +129,24 @@
     const browseBtn     = document.getElementById('browse-btn');
     const saveBtn       = document.getElementById('save-btn');
     const errorDiv      = document.getElementById('error');
+    const shortcutCb    = document.getElementById('shortcut-cb');
+    const shortcutLabel = document.getElementById('shortcut-label');
 
-    function showError(msg) {
-      errorDiv.textContent = msg;
-      errorDiv.style.display = 'block';
-    }
-    function clearError() {
-      errorDiv.style.display = 'none';
-    }
+    shortcutLabel.addEventListener('click', () => { shortcutCb.checked = !shortcutCb.checked; });
 
-    // Pre-populate fields with existing config on open
-    window.electronAPI.getConfig().then((cfg) => {
+    function showError(msg) { errorDiv.textContent = msg; }
+    function clearError()   { errorDiv.textContent = ''; }
+
+    // Pre-populate fields; check shortcut box on first run
+    Promise.all([
+      window.electronAPI.getConfig(),
+      window.electronAPI.getIsFirstRun(),
+    ]).then(([cfg, isFirstRun]) => {
       if (cfg) {
         savePathInput.value = cfg.savePath || '';
         portInput.value     = cfg.port     || 8080;
       }
+      shortcutCb.checked = isFirstRun;
     });
 
     browseBtn.addEventListener('click', async () => {
@@ -122,9 +160,8 @@
       const port     = parseInt(portInput.value, 10);
       if (!savePath) { showError('Save folder is required.'); return; }
       if (!port || port < 1024 || port > 65535) { showError('Port must be between 1024 and 65535.'); return; }
-      const result = await window.electronAPI.saveConfig({ savePath, port });
+      const result = await window.electronAPI.saveConfig({ savePath, port, createShortcut: shortcutCb.checked });
       if (!result.ok) { showError(result.error || 'Failed to save config.'); }
-      // On success the main process closes this window — no action needed here
     });
   </script>
 </body>

@@ -3,7 +3,8 @@ const path = require('path');
 const { BrowserWindow, ipcMain, dialog } = require('electron');
 
 let _currentConfig = null;
-let _windowOpen = false;
+let _isFirstRun    = false;
+let _windowOpen    = false;
 
 /**
  * openSetupWindow(existingConfig)
@@ -11,15 +12,16 @@ let _windowOpen = false;
  * Resolves with { savePath, port } on save, or null if closed without saving.
  * If a setup window is already open, focuses it and returns null immediately.
  */
-function openSetupWindow(existingConfig) {
+function openSetupWindow(existingConfig, isFirstRun = false) {
     if (_windowOpen) return Promise.resolve(null);
     _windowOpen = true;
     _currentConfig = existingConfig;
+    _isFirstRun    = isFirstRun;
 
     return new Promise((resolve) => {
         const win = new BrowserWindow({
-            width: 480,
-            height: 230,
+            width: 520,
+            height: 400,
             resizable: false,
             minimizable: false,
             maximizable: false,
@@ -66,6 +68,9 @@ function openSetupWindow(existingConfig) {
         // IPC: renderer asks for existing config (invoke-based)
         const handleGetConfigInvoke = () => _currentConfig;
         ipcMain.handle('get-config', handleGetConfigInvoke);
+
+        const handleGetIsFirstRun = () => _isFirstRun;
+        ipcMain.handle('get-is-first-run', handleGetIsFirstRun);
 
         // Clean up all handlers when the window closes
         win.on('closed', () => {
