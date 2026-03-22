@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
 
@@ -18,16 +18,16 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Install server dependencies
-        run: cd server && npm install
+      - name: Install dependencies
+        run: npm install
 
       - name: Build Windows executable
-        run: cd server && npm run build:windows
+        run: npm run build:windows
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/botw-live-savegame-monitor.exe
+          files: dist/BotW Live Savegame Monitor.exe
           generate_release_notes: true
