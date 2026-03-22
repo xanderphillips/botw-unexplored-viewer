@@ -155,6 +155,14 @@ async function quit() {
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
+// Prevent multiple instances. If another instance holds the lock, quit immediately.
+// The lock is released on app.quit(), so auto-update (quitAndInstall) is unaffected —
+// the new exe launches after the old one exits and can acquire the lock normally.
+if (!app.requestSingleInstanceLock()) {
+    app.quit();
+    process.exit(0);
+}
+
 app.on('window-all-closed', () => { /* prevent default quit — we live in the tray */ });
 
 app.whenReady().then(async () => {
@@ -162,8 +170,9 @@ app.whenReady().then(async () => {
     app.setAppUserModelId('com.xanderphillips.botw-live-savegame-monitor');
 
     currentConfig = loadConfig();
+    const isFirstRun = !currentConfig;
 
-    if (!currentConfig) {
+    if (isFirstRun) {
         const candidates = scanCemuSavePaths();
         const suggested = candidates.length > 0 ? { savePath: candidates[0], port: 8080 } : null;
         const result = await openSetupWindow(suggested);
@@ -187,9 +196,12 @@ app.whenReady().then(async () => {
         hasOpenedBrowser = true;
     }
 
-    tray.displayBalloon({
-        title: 'BotW Live Savegame Monitor',
-        content: 'Running in the system tray. Right-click the icon to open the browser or quit.',
-        iconType: 'info',
-    });
+    // Only show the "tray icon may be hidden" balloon on first run
+    if (isFirstRun) {
+        tray.displayBalloon({
+            title: 'BotW Live Savegame Monitor',
+            content: 'Running in the system tray. Right-click the icon to open the browser or quit.',
+            iconType: 'info',
+        });
+    }
 });
