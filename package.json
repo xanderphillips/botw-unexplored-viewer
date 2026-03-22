@@ -28,9 +28,12 @@
       "favicon.ico",
       "node_modules/**/*"
     ],
+    "copyright": "Copyright © 2026 xanderphillips",
     "win": {
       "target": [{ "target": "portable", "arch": ["x64"] }],
-      "icon": "favicon.ico"
+      "icon": "favicon.ico",
+      "fileDescription": "BotW Live Savegame Monitor",
+      "companyName": "xanderphillips"
     }
   },
   "repository": {
@@ -38,7 +41,7 @@
     "url": "git+https://github.com/xanderphillips/botw-live-savegame-monitor.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "xanderphillips",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
