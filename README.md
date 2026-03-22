@@ -4,8 +4,9 @@
 
 A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save).
 
-**Two ways to run it:**
-- **Windows exe (recommended for most users)** — a standalone portable app that lives in your system tray. No Docker, no Node.js, no setup beyond picking your save folder. Download from [Releases](../../releases).
+**Three ways to run it:**
+- **Windows installer (recommended for most users)** — installs to Program Files, creates Start Menu and desktop shortcuts, and registers a clean uninstaller in Add/Remove Programs. Download from [Releases](../../releases).
+- **Windows portable exe** — single file, no installation, place it anywhere. Includes automatic update checks on launch. Download from [Releases](../../releases).
 - **Docker** — for users who prefer containers or are running on Linux/macOS.
 
 ### Map Stats
@@ -186,11 +187,21 @@ The easiest way to run the viewer — no Docker, no Node.js, no command line.
 - Windows 10 or later (x64)
 - Cemu emulator with at least one save file present
 
+### Choosing a download
+
+Two exe files are published to each release:
+
+| | Installer (`*Setup*.exe`) | Portable (`*.exe`, no "Setup") |
+|---|---|---|
+| Installation | Program Files, Start Menu, desktop shortcut | None — single file, place anywhere |
+| Uninstall | Add/Remove Programs | Delete the file |
+| Auto-updates | No — re-download to upgrade | Yes — checks on launch, prompts via tray |
+
 ### Setup
 
-1. Download `botw-ls-monitor.exe` from [Releases](../../releases).
+1. Download your preferred build from [Releases](../../releases).
 
-2. Run it — no installation needed, place it anywhere.
+2. **Installer:** run the Setup exe and follow the wizard. **Portable:** run the exe directly — no installation needed.
 
 3. On first launch a setup dialog appears. The app automatically detects your Cemu save folder and pre-fills the path. Confirm it (or browse to a different folder) and click **Save & Start**.
 
@@ -202,6 +213,7 @@ Right-click the tray icon to access:
 
 - **Open Browser** — open the viewer in your default browser
 - **Reconfigure…** — change the save folder or port
+- **Install Update v…** — appears when an update is available (portable build only); click to download and restart
 - **Quit** — shut down the server and exit
 
 > **Tip:** Windows may hide new tray icons by default. If you don't see it, click the **`^`** arrow in the system tray to expand hidden icons. You can drag it to the visible area to pin it permanently.
@@ -212,7 +224,7 @@ Right-click the tray icon to access:
 
 - **Firewall prompt**: On first run Windows Firewall will ask whether to allow the app to communicate on your network. Click **Allow access** — this is required so your browser can connect to the local server. The server only listens on your local machine; no data leaves your network.
 
-- **Antivirus / false positives**: This app is built with [Electron](https://www.electronjs.org), which bundles Chromium and Node.js into a self-extracting portable exe. The self-extraction behavior (writing files to `%LOCALAPPDATA%\BotW Live Savegame Monitor` on first run) is normal for Electron portable apps but can trigger antivirus heuristics. This is a known characteristic of unsigned Electron apps — see [Electron's code signing documentation](https://www.electronjs.org/docs/latest/tutorial/code-signing) for context. If your antivirus flags it, you can add an exception for `%LOCALAPPDATA%\BotW Live Savegame Monitor` or verify the download against the release checksum.
+- **Antivirus / false positives**: This app is built with [Electron](https://www.electronjs.org), which bundles Chromium and Node.js into a self-extracting portable exe. The self-extraction behavior (writing files to `%APPDATA%\botw-live-savegame-monitor` on first run) is normal for Electron portable apps but can trigger antivirus heuristics. This is a known characteristic of unsigned Electron apps — see [Electron's code signing documentation](https://www.electronjs.org/docs/latest/tutorial/code-signing) for context. If your antivirus flags it, you can add an exception for `%APPDATA%\botw-live-savegame-monitor` or verify the download against the release checksum.
 
 - Configuration is saved at `%APPDATA%\botw-live-savegame-monitor\config.json`.
 - UI state (visible categories, dismissed waypoints, map position, etc.) persists between runs.

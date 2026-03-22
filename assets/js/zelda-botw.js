@@ -1464,26 +1464,34 @@ function playTone(key) {
     var cfg = _toneConfigs[key];
     if (!cfg) return;
     var ctx = _getAudioCtx();
-    if (!ctx || ctx.state !== 'running') return;
-    // During test mode use staccato envelope (1/4 duration); normal play is full length.
-    var testing = document.body.classList.contains('test-mode');
-    var attack  = testing ? cfg.attack * 0.5 : cfg.attack;
-    var sustain = testing ? cfg.sustain * 0.25 : cfg.sustain;
-    var decay   = testing ? cfg.decay * 0.25 : cfg.decay;
-    try {
-        var osc = ctx.createOscillator();
-        var gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = cfg.type;
-        osc.frequency.value = cfg.freq;
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + attack);
-        gain.gain.setValueAtTime(0.18, ctx.currentTime + attack + sustain);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + attack + sustain + decay);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + attack + sustain + decay);
-    } catch (e) { /* oscillator scheduling failed */ }
+    if (!ctx || ctx.state === 'closed') return;
+    function scheduleNote() {
+        if (!ctx || ctx.state !== 'running') return;
+        // During test mode use staccato envelope (1/4 duration); normal play is full length.
+        var testing = document.body.classList.contains('test-mode');
+        var attack  = testing ? cfg.attack * 0.5 : cfg.attack;
+        var sustain = testing ? cfg.sustain * 0.25 : cfg.sustain;
+        var decay   = testing ? cfg.decay * 0.25 : cfg.decay;
+        try {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = cfg.type;
+            osc.frequency.value = cfg.freq;
+            gain.gain.setValueAtTime(0, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + attack);
+            gain.gain.setValueAtTime(0.18, ctx.currentTime + attack + sustain);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + attack + sustain + decay);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + attack + sustain + decay);
+        } catch (e) { /* oscillator scheduling failed */ }
+    }
+    if (ctx.state === 'running') {
+        scheduleNote();
+    } else {
+        ctx.resume().then(scheduleNote).catch(function () {});
+    }
 }
 
 // Map pan and zoom functionality
