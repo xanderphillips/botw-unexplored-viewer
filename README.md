@@ -2,7 +2,11 @@
 
 ### Because there _really_ needed to be 900 of them, right?
 
-A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save). Runs as a Docker container on the same machine as Cemu and is accessible from any browser on your local network.
+A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save).
+
+**Two ways to run it:**
+- **Windows exe (recommended for most users)** — a standalone portable app that lives in your system tray. No Docker, no Node.js, no setup beyond picking your save folder. Download from [Releases](../../releases).
+- **Docker** — for users who prefer containers or are running on Linux/macOS.
 
 ### Map Stats
 Each entry is color-coded, hoverable, and toggleable:
@@ -173,7 +177,7 @@ Thank you @marcrobledo for the [save game editors](https://github.com/marcrobled
 
 ## Windows Executable
 
-The easiest way to run the viewer on Windows — no Docker, no Node.js installation required.
+The easiest way to run the viewer — no Docker, no Node.js, no command line.
 
 ### Requirements
 
@@ -182,31 +186,32 @@ The easiest way to run the viewer on Windows — no Docker, no Node.js installat
 
 ### Setup
 
-1. Download `botw-live-savegame-monitor.exe` from [Releases](../../releases).
+1. Download `BotW Live Savegame Monitor.exe` from [Releases](../../releases).
 
-2. Place it anywhere (e.g. `C:\botw-monitor\`).
+2. Run it — no installation needed, place it anywhere.
 
-3. Run `botw-live-savegame-monitor.exe`.
+3. On first launch a setup dialog appears. The app automatically detects your Cemu save folder and pre-fills the path. Confirm it (or browse to a different folder) and click **Save & Start**.
 
-4. On first launch a folder picker dialog appears. Navigate to your Cemu save folder — the one containing `0/`, `1/`, `2/` subfolders. The default location is:
-   ```
-   C:\Users\<YourUsername>\AppData\Roaming\Cemu\mlc01\usr\save\00050000\101c9400\user\80000001
-   ```
-   Select that folder and click OK.
+4. The app starts the server, opens your browser automatically, and minimizes to the **system tray** (bottom-right near the clock). No console window appears.
 
-5. The viewer auto-detects an available port (8080, 8081, or 3000) and opens your browser automatically.
+### Tray icon
 
-### Reconfigure
+Right-click the tray icon to access:
 
-To change the save path or port, run:
-```
-botw-live-savegame-monitor.exe --setup
-```
+- **Open Browser** — open the viewer in your default browser
+- **Reconfigure…** — change the save folder or port
+- **Quit** — shut down the server and exit
+
+> **Tip:** Windows may hide new tray icons by default. If you don't see it, click the **`^`** arrow in the system tray to expand hidden icons. You can drag it to the visible area to pin it permanently.
 
 ### Notes
 
 - **SmartScreen warning**: Windows may show "Windows protected your PC" on first run because the exe is unsigned. Click **More info → Run anyway** to proceed.
-- The exe is fully self-contained — all assets are bundled inside it (~40–50 MB).
+
+- **Firewall prompt**: On first run Windows Firewall will ask whether to allow the app to communicate on your network. Click **Allow access** — this is required so your browser can connect to the local server. The server only listens on your local machine; no data leaves your network.
+
+- **Antivirus / false positives**: This app is built with [Electron](https://www.electronjs.org), which bundles Chromium and Node.js into a self-extracting portable exe. The self-extraction behavior (writing files to `%LOCALAPPDATA%\BotW Live Savegame Monitor` on first run) is normal for Electron portable apps but can trigger antivirus heuristics. This is a known characteristic of unsigned Electron apps — see [Electron's code signing documentation](https://www.electronjs.org/docs/latest/tutorial/code-signing) for context. If your antivirus flags it, you can add an exception for `%LOCALAPPDATA%\BotW Live Savegame Monitor` or verify the download against the release checksum.
+
 - Configuration is saved at `%APPDATA%\botw-live-savegame-monitor\config.json`.
 - UI state (visible categories, dismissed waypoints, map position, etc.) persists between runs.
 
