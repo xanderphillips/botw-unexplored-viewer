@@ -116,7 +116,9 @@ function buildMenu(serverOk) {
 
 function createTray() {
     const iconPath = getIconPath();
+    console.log('Tray icon path:', iconPath, 'exists:', fs.existsSync(iconPath));
     const icon = nativeImage.createFromPath(iconPath);
+    console.log('Icon empty:', icon.isEmpty());
     tray = new Tray(icon);
     tray.setToolTip('BotW Live Savegame Monitor');
     tray.setContextMenu(buildMenu(true));
@@ -157,6 +159,7 @@ async function quit() {
 app.on('window-all-closed', () => { /* prevent default quit — we live in the tray */ });
 
 app.whenReady().then(async () => {
+    app.setName('BotW Live Savegame Monitor');
     app.setAppUserModelId('com.xanderphillips.botw-live-savegame-monitor');
 
     currentConfig = loadConfig();
@@ -184,4 +187,10 @@ app.whenReady().then(async () => {
         shell.openExternal(url);
         hasOpenedBrowser = true;
     }
+
+    tray.displayBalloon({
+        title: 'BotW Live Savegame Monitor',
+        content: 'Running in the system tray. Right-click the icon to open the browser or quit.',
+        iconType: 'info',
+    });
 });
