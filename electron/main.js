@@ -12,6 +12,25 @@ const APP_DATA_DIR = path.join(os.homedir(), 'AppData', 'Roaming', 'botw-live-sa
 const CONFIG_FILE  = path.join(APP_DATA_DIR, 'config.json');
 const ERROR_LOG    = path.join(APP_DATA_DIR, 'error.log');
 
+// Scan the standard Cemu save tree for BotW save roots (folders containing 0–5 slot subfolders).
+// Returns an array of matching paths, most recently modified first.
+function scanCemuSavePaths() {
+    const userDir = path.join(
+        os.homedir(), 'AppData', 'Roaming',
+        'Cemu', 'mlc01', 'usr', 'save', '00050000', '101c9400', 'user'
+    );
+    try {
+        return fs.readdirSync(userDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => path.join(userDir, e.name))
+            .filter((p) =>
+                [0, 1, 2, 3, 4, 5].some((i) =>
+                    fs.existsSync(path.join(p, String(i), 'game_data.sav'))
+                )
+            );
+    } catch { return []; }
+}
+
 function loadConfig() {
     try {
         const raw = fs.readFileSync(CONFIG_FILE, 'utf8');
@@ -143,7 +162,9 @@ app.whenReady().then(async () => {
     currentConfig = loadConfig();
 
     if (!currentConfig) {
-        const result = await openSetupWindow(null);
+        const candidates = scanCemuSavePaths();
+        const suggested = candidates.length > 0 ? { savePath: candidates[0], port: 8080 } : null;
+        const result = await openSetupWindow(suggested);
         if (!result) { app.quit(); return; }
         saveConfig(result);
         currentConfig = result;
