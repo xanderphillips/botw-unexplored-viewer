@@ -30,8 +30,20 @@
     ],
     "copyright": "Copyright © 2026 xanderphillips",
     "win": {
-      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "favicon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "xanderphillips",
+      "repo": "botw-live-savegame-monitor"
     }
   },
   "repository": {
@@ -57,6 +69,7 @@
     "prettier": "^3.8.1"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "express": "^5.2.1"
   }
 }
