@@ -31,9 +31,7 @@
     "copyright": "Copyright © 2026 xanderphillips",
     "win": {
       "target": [{ "target": "portable", "arch": ["x64"] }],
-      "icon": "favicon.ico",
-      "fileDescription": "BotW Live Savegame Monitor",
-      "companyName": "xanderphillips"
+      "icon": "favicon.ico"
     }
   },
   "repository": {

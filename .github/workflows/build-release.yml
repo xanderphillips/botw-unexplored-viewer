@@ -12,6 +12,8 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Checkout
@@ -27,6 +29,11 @@ jobs:
 
       - name: Build Windows executable
         run: npm run build:windows
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.exe
 
       - name: Upload artifact (branch builds)
         if: github.ref_type == 'branch'
