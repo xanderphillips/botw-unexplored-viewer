@@ -107,10 +107,7 @@ async function checkAndMigrateVersion() {
     const versionExists = fs.existsSync(VERSION_FILE);
 
     // Both absent: genuine first run
-    if (!configExists && !versionExists) return 'setup';
-
-    // version.json present, config.json absent: config deleted manually — treat as first run
-    if (!configExists && versionExists) return 'setup';
+    if (!configExists) return 'setup';
 
     // config.json present, version.json absent: crash recovery or pre-version install
     if (configExists && !versionExists) {
@@ -208,6 +205,7 @@ function initAutoUpdater() {
     autoUpdater.on('error', (e) => logError('[updater:error] ' + e.message));
 
     autoUpdater.on('update-available', (info) => {
+        if (!tray) return;
         tray.displayBalloon({
             title:    'BotW Live Savegame Monitor',
             content:  `Update available: v${info.version} — right-click tray to install`,
@@ -250,7 +248,6 @@ const { startServer, drainSseClients } = require('../server/server');
 let currentHttpServer = null;
 let currentConfig     = null;
 let tray              = null;
-let hasOpenedBrowser  = false;
 
 async function startExpressServer(config) {
     try {
@@ -319,22 +316,29 @@ function setTrayError() {
 
 // ── Reconfigure ───────────────────────────────────────────────────────────────
 
+let _reconfiguring = false;
 async function reconfigure() {
-    const result = await openSetupWindow(currentConfig, false);
-    if (!result) return;
-    const { createShortcut, ...configToSave } = result;
-    saveConfig(configToSave);
-    writeVersionFile();
-    currentConfig = configToSave;
-    await stopExpressServer();
-    const ok = await startExpressServer(configToSave);
-    if (ok) {
-        tray.setContextMenu(buildMenu(true));
-        tray.setToolTip('BotW Live Savegame Monitor');
-    } else {
-        setTrayError();
+    if (_reconfiguring) return;
+    _reconfiguring = true;
+    try {
+        const result = await openSetupWindow(currentConfig, false);
+        if (!result) return;
+        const { createShortcut, ...configToSave } = result;
+        saveConfig(configToSave);
+        writeVersionFile();
+        currentConfig = configToSave;
+        await stopExpressServer();
+        const ok = await startExpressServer(configToSave);
+        if (ok) {
+            tray.setContextMenu(buildMenu(true));
+            tray.setToolTip('BotW Live Savegame Monitor');
+        } else {
+            setTrayError();
+        }
+        if (createShortcut) createDesktopShortcut();
+    } finally {
+        _reconfiguring = false;
     }
-    if (createShortcut) createDesktopShortcut();
 }
 
 // ── Quit ──────────────────────────────────────────────────────────────────────
@@ -399,10 +403,7 @@ app.whenReady().then(async () => {
     const ok = await startExpressServer(currentConfig);
     if (!ok) { setTrayError(); return; }
 
-    if (!hasOpenedBrowser) {
-        shell.openExternal(`http://localhost:${currentConfig.port}`);
-        hasOpenedBrowser = true;
-    }
+    shell.openExternal(`http://localhost:${currentConfig.port}`);
 
     initAutoUpdater();
 });
