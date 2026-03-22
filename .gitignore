@@ -6,3 +6,5 @@ server/.env
 server/data/
 !server/data/.gitkeep
 server/style-example.html
+favicon.ico
+dist/
