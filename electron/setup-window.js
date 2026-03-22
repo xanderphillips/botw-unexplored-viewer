@@ -50,7 +50,7 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
 
         // IPC: renderer submits config
         const handleSaveConfig = (event, cfg) => {
-            const { savePath, port } = cfg || {};
+            const { savePath, port, createShortcut } = cfg || {};
             if (!savePath || typeof savePath !== 'string') {
                 return { ok: false, error: 'Invalid save path' };
             }
@@ -58,7 +58,7 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
             if (!p || p < 1024 || p > 65535) {
                 return { ok: false, error: 'Invalid port' };
             }
-            const saved = { savePath: savePath.trim(), port: p };
+            const saved = { savePath: savePath.trim(), port: p, createShortcut: !!createShortcut };
             resolve(saved);
             win.close();
             return { ok: true };
@@ -78,6 +78,7 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
             ipcMain.removeHandler('pick-folder');
             ipcMain.removeHandler('save-config');
             ipcMain.removeHandler('get-config');
+            ipcMain.removeHandler('get-is-first-run');
             resolve(null); // no-op if already resolved via save
         });
     });
