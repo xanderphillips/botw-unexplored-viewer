@@ -22,9 +22,15 @@
   "homepage": "https://github.com/xanderphillips/botw-live-savegame-monitor#readme",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "electron": "^41.0.3",
+    "electron-builder": "^26.8.1",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.4.0",
+    "png-to-ico": "^3.0.1",
     "prettier": "^3.8.1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
