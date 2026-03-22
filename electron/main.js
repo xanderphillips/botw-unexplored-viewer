@@ -178,6 +178,22 @@ function wipeAppData() {
     }
 }
 
+function createDesktopShortcut() {
+    if (!app.isPackaged) return;
+    const exePath = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    const ps = [
+        `$ws = New-Object -ComObject WScript.Shell`,
+        `$s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\\BotW Live Savegame Monitor.lnk')`,
+        `$s.TargetPath = '${exePath.replace(/'/g, "''")}'`,
+        `$s.Save()`,
+    ].join('; ');
+    try {
+        execFileSync('powershell.exe', ['-NoProfile', '-Command', ps], { timeout: 5000 });
+    } catch (e) {
+        logError('Shortcut creation failed: ' + e.message);
+    }
+}
+
 // ── Server ────────────────────────────────────────────────────────────────────
 
 // IMPORTANT: STATE_DIR and STATIC_ROOT MUST be set before requiring server/server.js.
