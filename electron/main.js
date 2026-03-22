@@ -320,19 +320,21 @@ function setTrayError() {
 // ── Reconfigure ───────────────────────────────────────────────────────────────
 
 async function reconfigure() {
-    const result = await openSetupWindow(currentConfig);
-    if (!result) return; // user cancelled — keep existing config and server
-    saveConfig(result);
-    currentConfig = result;
+    const result = await openSetupWindow(currentConfig, false);
+    if (!result) return;
+    const { createShortcut, ...configToSave } = result;
+    saveConfig(configToSave);
+    writeVersionFile();
+    currentConfig = configToSave;
     await stopExpressServer();
-    const ok = await startExpressServer(result);
+    const ok = await startExpressServer(configToSave);
     if (ok) {
         tray.setContextMenu(buildMenu(true));
         tray.setToolTip('BotW Live Savegame Monitor');
     } else {
         setTrayError();
     }
-    // Do NOT auto-open browser on reconfigure (hasOpenedBrowser stays true)
+    if (createShortcut) createDesktopShortcut();
 }
 
 // ── Quit ──────────────────────────────────────────────────────────────────────
@@ -359,39 +361,48 @@ app.whenReady().then(async () => {
     app.setName('BotW Live Savegame Monitor');
     app.setAppUserModelId('com.xanderphillips.botw-live-savegame-monitor');
 
-    currentConfig = loadConfig();
-    const isFirstRun = !currentConfig;
+    // Kill any stale instances of this exe before proceeding
+    killOtherInstances();
+
+    // Check version / schema migration
+    const migrationResult = await checkAndMigrateVersion();
+    if (migrationResult === 'quit') { app.quit(); return; }
+
+    const isFirstRun = migrationResult === 'setup';
+    currentConfig    = isFirstRun ? null : loadConfig();
 
     if (isFirstRun) {
         const candidates = scanCemuSavePaths();
-        const suggested = candidates.length > 0 ? { savePath: candidates[0], port: 8080 } : null;
-        const result = await openSetupWindow(suggested);
+        const suggested  = candidates.length > 0 ? { savePath: candidates[0], port: 8080 } : null;
+        const result     = await openSetupWindow(suggested, true);
         if (!result) { app.quit(); return; }
-        saveConfig(result);
-        currentConfig = result;
-    }
-
-    createTray();
-
-    const ok = await startExpressServer(currentConfig);
-    if (!ok) {
-        setTrayError();
+        const { createShortcut, ...configToSave } = result;
+        saveConfig(configToSave);
+        writeVersionFile();
+        currentConfig = configToSave;
+        createTray();
+        const ok = await startExpressServer(configToSave);
+        if (!ok) { setTrayError(); return; }
+        const url = `http://localhost:${configToSave.port}`;
+        shell.openExternal(url);
+        tray.displayBalloon({
+            title:    'BotW Live Savegame Monitor',
+            content:  'Running in the system tray. Right-click the icon to open the browser or quit.',
+            iconType: 'info',
+        });
+        if (createShortcut) createDesktopShortcut();
+        initAutoUpdater();
         return;
     }
 
-    // Auto-open browser on first cold start
+    createTray();
+    const ok = await startExpressServer(currentConfig);
+    if (!ok) { setTrayError(); return; }
+
     if (!hasOpenedBrowser) {
-        const url = `http://localhost:${currentConfig.port}`;
-        shell.openExternal(url);
+        shell.openExternal(`http://localhost:${currentConfig.port}`);
         hasOpenedBrowser = true;
     }
 
-    // Only show the "tray icon may be hidden" balloon on first run
-    if (isFirstRun) {
-        tray.displayBalloon({
-            title: 'BotW Live Savegame Monitor',
-            content: 'Running in the system tray. Right-click the icon to open the browser or quit.',
-            iconType: 'info',
-        });
-    }
+    initAutoUpdater();
 });
