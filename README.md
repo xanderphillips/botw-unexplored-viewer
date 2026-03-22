@@ -71,8 +71,12 @@ A server status indicator and save timestamp at the bottom of the sidebar show s
 The viewer exposes a JSON endpoint that serves as a live data feed of your current save state:
 
 ```
-GET http://localhost:3000/api
+GET http://localhost:<port>/api
 ```
+
+> **Port:** Docker uses port `3000`. The Windows exe uses the port you configured at setup (default: `8080`).
+
+> **Debug mode required:** The `/api` endpoint is only active when the server is started with the `DEBUG=1` environment variable set. For Docker, add `DEBUG=1` to `server/.env`. The Windows exe does not currently expose this endpoint in its default configuration.
 
 Since the server polls the save files for changes every 10 seconds, this endpoint always reflects your most recent save — manual or auto-save — no game modification or plugin required. External systems can poll `/api` on any interval to react to changes in game state.
 
@@ -186,7 +190,7 @@ The easiest way to run the viewer — no Docker, no Node.js, no command line.
 
 ### Setup
 
-1. Download `BotW Live Savegame Monitor.exe` from [Releases](../../releases).
+1. Download `botw-ls-monitor.exe` from [Releases](../../releases).
 
 2. Run it — no installation needed, place it anywhere.
 
