@@ -3,6 +3,7 @@ const { app, Tray, Menu, shell, nativeImage } = require('electron');
 const path = require('path');
 const fs   = require('fs');
 const os   = require('os');
+const { execFileSync, execSync } = require('child_process');
 
 const { openSetupWindow } = require('./setup-window');
 
@@ -11,6 +12,9 @@ const { openSetupWindow } = require('./setup-window');
 const APP_DATA_DIR = path.join(os.homedir(), 'AppData', 'Roaming', 'botw-live-savegame-monitor');
 const CONFIG_FILE  = path.join(APP_DATA_DIR, 'config.json');
 const ERROR_LOG    = path.join(APP_DATA_DIR, 'error.log');
+const VERSION_FILE           = path.join(APP_DATA_DIR, 'version.json');
+const SCHEMA_VERSION         = 1;
+const OBSOLETE_APPDATA_FILES = []; // add filenames here when removing AppData files in future versions
 
 // Scan the standard Cemu save tree for BotW save roots (folders containing 0–5 slot subfolders).
 // Returns an array of matching paths, most recently modified first.
@@ -50,6 +54,24 @@ function logError(msg) {
         fs.mkdirSync(APP_DATA_DIR, { recursive: true });
         fs.appendFileSync(ERROR_LOG, '[' + new Date().toISOString() + '] ' + msg + '\n', 'utf8');
     } catch { /* ignore */ }
+}
+
+function writeVersionFile() {
+    try {
+        fs.mkdirSync(APP_DATA_DIR, { recursive: true });
+        fs.writeFileSync(VERSION_FILE, JSON.stringify({
+            appVersion:    app.getVersion(),
+            schemaVersion: SCHEMA_VERSION,
+        }, null, 2), 'utf8');
+    } catch (e) {
+        logError('writeVersionFile failed: ' + e.message);
+    }
+}
+
+function readVersionFile() {
+    try {
+        return JSON.parse(fs.readFileSync(VERSION_FILE, 'utf8'));
+    } catch { return null; }
 }
 
 // ── Server ────────────────────────────────────────────────────────────────────
