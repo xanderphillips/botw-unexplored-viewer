@@ -74,6 +74,29 @@ function readVersionFile() {
     } catch { return null; }
 }
 
+function killOtherInstances() {
+    try {
+        const out = execSync(
+            'tasklist /FI "IMAGENAME eq botw-ls-monitor.exe" /FO CSV /NH',
+            { timeout: 5000, encoding: 'utf8' }
+        );
+        const lines = out.trim().split('\n').filter(Boolean);
+        for (const line of lines) {
+            const parts = line.split(',');
+            if (parts.length < 2) continue;
+            const pid = parseInt(parts[1].replace(/"/g, ''), 10);
+            if (!pid || pid === process.pid) continue;
+            try {
+                execSync(`taskkill /F /PID ${pid}`, { timeout: 3000 });
+            } catch (e) {
+                logError(`taskkill /PID ${pid} failed: ` + e.message);
+            }
+        }
+    } catch (e) {
+        logError('killOtherInstances failed: ' + e.message);
+    }
+}
+
 // ── Server ────────────────────────────────────────────────────────────────────
 
 // IMPORTANT: STATE_DIR and STATIC_ROOT MUST be set before requiring server/server.js.
