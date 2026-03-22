@@ -202,12 +202,16 @@ Right-click the tray icon to access:
 - **Reconfigure…** — change the save folder or port
 - **Quit** — shut down the server and exit
 
-> **Tip:** Windows hides new tray icons by default. If you don't see it, click the **`^`** arrow in the system tray to expand hidden icons. You can drag it to the visible area to pin it permanently.
+> **Tip:** Windows may hide new tray icons by default. If you don't see it, click the **`^`** arrow in the system tray to expand hidden icons. You can drag it to the visible area to pin it permanently.
 
 ### Notes
 
 - **SmartScreen warning**: Windows may show "Windows protected your PC" on first run because the exe is unsigned. Click **More info → Run anyway** to proceed.
-- The exe is self-extracting (~150 MB) and extracts to `%LOCALAPPDATA%\BotW Live Savegame Monitor` on first run. This is normal for Electron portable apps.
+
+- **Firewall prompt**: On first run Windows Firewall will ask whether to allow the app to communicate on your network. Click **Allow access** — this is required so your browser can connect to the local server. The server only listens on your local machine; no data leaves your network.
+
+- **Antivirus / false positives**: This app is built with [Electron](https://www.electronjs.org), which bundles Chromium and Node.js into a self-extracting portable exe. The self-extraction behavior (writing files to `%LOCALAPPDATA%\BotW Live Savegame Monitor` on first run) is normal for Electron portable apps but can trigger antivirus heuristics. This is a known characteristic of unsigned Electron apps — see [Electron's code signing documentation](https://www.electronjs.org/docs/latest/tutorial/code-signing) for context. If your antivirus flags it, you can add an exception for `%LOCALAPPDATA%\BotW Live Savegame Monitor` or verify the download against the release checksum.
+
 - Configuration is saved at `%APPDATA%\botw-live-savegame-monitor\config.json`.
 - UI state (visible categories, dismissed waypoints, map position, etc.) persists between runs.
 
