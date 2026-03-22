@@ -2,6 +2,8 @@ name: Build Windows Release
 
 on:
   push:
+    branches:
+      - dev-windows-exe
     tags:
       - 'v*.*.*'
 
@@ -26,8 +28,17 @@ jobs:
       - name: Build Windows executable
         run: npm run build:windows
 
-      - name: Create GitHub Release
+      - name: Upload artifact (branch builds)
+        if: github.ref_type == 'branch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: BotW-Live-Savegame-Monitor
+          path: "dist/BotW Live Savegame Monitor.exe"
+          retention-days: 14
+
+      - name: Create GitHub Release (tag builds)
+        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/BotW Live Savegame Monitor.exe
+          files: "dist/BotW Live Savegame Monitor.exe"
           generate_release_notes: true
