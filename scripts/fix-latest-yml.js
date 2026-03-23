@@ -1,7 +1,7 @@
 'use strict';
-// Post-build script: regenerate latest.yml to reference the portable exe.
-// electron-builder only writes latest.yml for NSIS targets, so after a combined
-// NSIS+portable build the manifest points at the Setup exe. This script fixes it.
+// Post-build script: generate latest-portable.yml to reference the portable exe.
+// electron-builder writes latest.yml for the NSIS target — this script generates
+// a separate manifest for the portable build so each update channel has its own file.
 const fs      = require('fs');
 const path    = require('path');
 const crypto  = require('crypto');
@@ -39,5 +39,5 @@ const yaml = [
     '',
 ].join('\n');
 
-fs.writeFileSync(path.join(distDir, 'latest.yml'), yaml, 'utf8');
-console.log(`fix-latest-yml: latest.yml updated -> ${urlName} (${(size / 1024 / 1024).toFixed(1)} MB)`);
+fs.writeFileSync(path.join(distDir, 'latest-portable.yml'), yaml, 'utf8');
+console.log(`fix-latest-yml: latest-portable.yml updated -> ${urlName} (${(size / 1024 / 1024).toFixed(1)} MB)`);
