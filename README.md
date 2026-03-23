@@ -6,7 +6,7 @@ A browser-based interactive map overlay for *The Legend of Zelda: Breath of the 
 
 **Three ways to run it:**
 - **Windows installer (recommended for most users)** — installs to Program Files, creates Start Menu and desktop shortcuts, and registers a clean uninstaller in Add/Remove Programs. Download from [Releases](../../releases).
-- **Windows portable exe** — single file, no installation, place it anywhere. Includes automatic update checks on launch. Download from [Releases](../../releases).
+- **Windows portable exe** — single file, no installation, place it anywhere. Download from [Releases](../../releases).
 - **Docker** — for users who prefer containers or are running on Linux/macOS.
 
 ### Map Stats
@@ -195,7 +195,7 @@ Two exe files are published to each release:
 |---|---|---|
 | Installation | Program Files, Start Menu, desktop shortcut | None — single file, place anywhere |
 | Uninstall | Add/Remove Programs | Delete the file |
-| Auto-updates | No — re-download to upgrade | Yes — checks on launch, prompts via tray |
+| Auto-updates | Yes — checks on launch, prompts via tray | Yes — checks on launch, prompts via tray |
 
 ### Setup
 
@@ -213,7 +213,7 @@ Right-click the tray icon to access:
 
 - **Open Browser** — open the viewer in your default browser
 - **Reconfigure…** — change the save folder or port
-- **Install Update v…** — appears when an update is available (portable build only); click to download and restart
+- **Install Update v…** — appears when an update is available; click to download and restart
 - **Quit** — shut down the server and exit
 
 > **Tip:** Windows may hide new tray icons by default. If you don't see it, click the **`^`** arrow in the system tray to expand hidden icons. You can drag it to the visible area to pin it permanently.
