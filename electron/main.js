@@ -193,8 +193,10 @@ function createDesktopShortcut() {
 }
 
 function initAutoUpdater() {
-    // Only run in the portable build — NSIS-installed version does not self-update
-    if (!process.env.PORTABLE_EXECUTABLE_FILE) return;
+    if (process.env.PORTABLE_EXECUTABLE_FILE) {
+        autoUpdater.channel = 'portable'; // fetches latest-portable.yml
+    }
+    // NSIS build uses default channel → fetches latest.yml
 
     autoUpdater.autoDownload = false;
     autoUpdater.logger = {
