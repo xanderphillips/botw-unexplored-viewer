@@ -9,6 +9,15 @@ A browser-based interactive map overlay for *The Legend of Zelda: Breath of the 
 - **Windows portable exe** — single file, no installation, place it anywhere. Download from [Releases](../../releases).
 - **Docker** — for users who prefer containers or are running on Linux/macOS.
 
+![Unexplored Area Viewer screenshot](Screenshot.jpg)
+
+---
+
+**Contents:**
+[Map Stats](#map-stats) · [Services](#services) · [Track Player](#track-player) · [Player Stats](#player-stats) · [Map Labels](#map-labels) · [Map Icons](#map-icons) · [Live Data API](#live-data-api) · [State API](#state-api) · [Windows Executable](#windows-executable) · [Docker Setup](#docker-setup)
+
+---
+
 ### Map Stats
 Each entry is color-coded, hoverable, and toggleable:
 
@@ -179,8 +188,6 @@ The browser subscribes to this Server-Sent Events stream. Any API write immediat
 #### Audio Feedback
 
 The browser plays a short oscillator tone whenever key state changes arrive via SSE — distinct pitches for map stat changes, player stat changes, sidebar items being shown or hidden, and last-update/status changes. Tones are generated entirely via the Web Audio API (no audio files). During test runs the envelope is shortened to a staccato click so rapid sweeps don't produce overlapping sounds.
-
-![Unexplored Area Viewer screenshot](Screenshot.jpg)
 
 Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Region label coordinates and English place names sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar). Original extension work by Eric Defore, on whose foundation this project was built.
 
