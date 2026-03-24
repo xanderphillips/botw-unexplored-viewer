@@ -786,6 +786,7 @@ body.test-mode #test-banner {
 }
 #toolbar label #span-number-total-koroks,
 #toolbar label #span-number-total-locations,
+#toolbar label #span-number-total-locations-visited,
 #toolbar label #span-number-total-shrines,
 #toolbar label #span-number-total-shrines-not-activated,
 #toolbar label #span-number-total-shrines-completed,

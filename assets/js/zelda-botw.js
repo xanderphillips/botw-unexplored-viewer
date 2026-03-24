@@ -696,10 +696,8 @@ window.addEventListener(
                             if (locationValues.found) {
                                 locationValues.found.locations =
                                     (locationValues.found.locations || 0) + 1;
-                                setValue(
-                                    'span-number-locations',
-                                    locationValues.found.locations
-                                );
+                                setValue('span-number-locations-visited', locationValues.found.locations);
+                                setValue('span-number-locations', 226 - locationValues.found.locations);
                             }
                         }
                     }
@@ -804,6 +802,7 @@ window.addEventListener(
                 var ov = s.statOverrides;
                 if (ov.koroks != null) setValue('span-number-koroks', ov.koroks);
                 if (ov.locations != null) setValue('span-number-locations', ov.locations);
+                if (ov.locationsVisited != null) setValue('span-number-locations-visited', ov.locationsVisited);
                 if (ov.shrines != null) setValue('span-number-shrines', ov.shrines);
                 if (ov.shrinesCompleted != null) setValue('span-number-shrines-completed', ov.shrinesCompleted);
                 if (ov.shrinesNotActivated != null) setValue('span-number-shrines-not-activated', ov.shrinesNotActivated);
@@ -1338,8 +1337,10 @@ function removeWaypoint(element) {
 // Render stat display values into the toolbar spans
 function renderStats(korokCount, shrinesCompletedCount) {
     setValue('span-number-koroks', korokCount);
-    setValue('span-number-locations', locationValues.found.locations);
+    setValue('span-number-locations', 226 - locationValues.found.locations);
     setValue('span-number-total-locations', 226);
+    setValue('span-number-locations-visited', locationValues.found.locations);
+    setValue('span-number-total-locations-visited', 226);
     setValue('span-number-shrines', locationValues.found.shrines - shrinesCompletedCount);
     setValue('span-number-total-shrines', totalShrines);
     setValue('span-number-shrines-not-activated',

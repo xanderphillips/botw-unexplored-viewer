@@ -24,7 +24,7 @@ Each entry is color-coded, hoverable, and toggleable:
 | Metric | Color | Total |
 |--------|-------|-------|
 | Korok seeds | Gold | 900 |
-| Locations | Orange | 226 |
+| Locations (Not Visited) | Orange | 226 |
 | Locations (Visited) | Teal | — |
 | Shrines (Not Activated) | Bright Red | 120 |
 | Shrines (Activated) | Cyan | 120 |
@@ -33,7 +33,7 @@ Each entry is color-coded, hoverable, and toggleable:
 | Divine Beasts | Red | 4 |
 | Player Position | White | — |
 
-Each metric row shows the stat label on the left and its count on the right, with a color bar below. All UI state (visible categories, service filters, track player, zoom level, dismissed waypoints, map view) is persisted server-side and restored on every page load.
+Each metric row shows the stat label on the left and its count on the right. All UI state (visible categories, service filters, track player, zoom level, dismissed waypoints, map view) is persisted server-side and restored on every page load.
 
 Shrines have three distinct states:
 - **Not Activated** (bright red) — shrine location not yet found on the map
@@ -110,8 +110,9 @@ Since the server polls the save files for changes every 10 seconds, this endpoin
   "MAP": XX,
   "MAPTYPE": XX,
   "locations":          { "found": XX, "total": 226 },
-  "shrines_discovered": { "found": XX, "total": 120 },
-  "shrines_completed":  { "found": XX, "total": 120 },
+  "shrines_discovered":     { "found": XX, "total": 120 },
+  "shrines_not_activated":  { "found": XX, "total": 120 },
+  "shrines_completed":      { "found": XX, "total": 120 },
   "towers":             { "found": XX, "total": 15 },
   "divine_beasts":      { "found": XX, "total": 4 },
   "koroks_discovered":  { "found": XX, "total": 900 }
@@ -157,7 +158,7 @@ PATCH /api/state/hidden-types     { type, hidden: true|false }
 PATCH /api/state/hidden-services  { service, hidden: true|false }
 ```
 
-Valid `type` values: `korok`, `location`, `location-discovered`, `shrine`, `shrine-completed`, `tower`, `divine-beast`, `labo`, `warp`, `player-position`
+Valid `type` values: `korok`, `location`, `location-discovered`, `shrine`, `shrine-not-activated`, `shrine-completed`, `tower`, `divine-beast`, `labo`, `warp`, `player-position`
 
 Valid `service` values: `hatago`, `village`, `settlement`, `great_fairy`, `goddess`, `yadoya`, `shop_yorozu`, `shop_bougu`, `shop_jewel`
 
