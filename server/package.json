@@ -1,6 +1,6 @@
 {
   "name": "botw-live-savegame-monitor",
-  "version": "1.0.0",
+  "version": "1.7.0",
   "description": "BOTW Live Savegame Monitor Server",
   "main": "server.js",
   "bin": "launcher.js",

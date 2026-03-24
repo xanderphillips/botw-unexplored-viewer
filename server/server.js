@@ -212,10 +212,10 @@ app.delete('/api/state/player-position', (req, res) => {
 });
 
 // PUT /api/state/stat-overrides — override stat display values for testing
-// Body: { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } (all optional numbers)
+// Body: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts } (all optional numbers)
 app.put('/api/state/stat-overrides', (req, res) => {
-    const { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } = req.body || {};
-    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: { koroks, locations, shrines, shrinesCompleted, towers, divineBeasts } }) });
+    const { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts } = req.body || {};
+    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts } }) });
 });
 
 // DELETE /api/state/stat-overrides — clear stat overrides
@@ -489,6 +489,10 @@ function parseSaveMetrics(buf) {
             r.u32,
             map.shrineCompletions
         );
+        metrics.shrines_not_activated = {
+            found: metrics.shrines_discovered.total - metrics.shrines_discovered.found,
+            total: metrics.shrines_discovered.total
+        };
         metrics.towers = scanFlags(buf, r.u32, map.towers);
         metrics.divine_beasts = scanFlags(buf, r.u32, map.divineBeasts);
         metrics.koroks_discovered = scanFlags(buf, r.u32, map.koroks);

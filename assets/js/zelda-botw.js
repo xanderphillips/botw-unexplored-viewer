@@ -250,6 +250,7 @@ SavegameEditor = {
         var _discoveredShines = {},
             _completedShrinesMap = {};
         for (var _sh in shrines) {
+            if (!_saveHashMap[_sh] || !_saveHashMap[_sh].value) continue;
             var _idx = shrines[_sh].internal_name.replace(
                 'Location_Dungeon',
                 ''
@@ -319,6 +320,7 @@ SavegameEditor = {
                 );
         }
         this.markMap(_discoveredShines, 'shrine');
+        this.markMap(locationValues.notFound.shrines, 'shrine-not-activated');
         this.markMap(_completedShrinesMap, 'shrine-completed');
         this.markMap(towers, 'tower');
         this.markMap(divineBeasts, 'divine-beast');
@@ -804,6 +806,7 @@ window.addEventListener(
                 if (ov.locations != null) setValue('span-number-locations', ov.locations);
                 if (ov.shrines != null) setValue('span-number-shrines', ov.shrines);
                 if (ov.shrinesCompleted != null) setValue('span-number-shrines-completed', ov.shrinesCompleted);
+                if (ov.shrinesNotActivated != null) setValue('span-number-shrines-not-activated', ov.shrinesNotActivated);
                 if (ov.towers != null) setValue('span-number-towers', ov.towers);
                 if (ov.divineBeasts != null) setValue('span-number-divine-beasts', ov.divineBeasts);
             }
@@ -969,6 +972,7 @@ window.addEventListener(
                 'location'
             );
             SavegameEditor.markMap(shrines, 'shrine');
+            SavegameEditor.markMap(locationValues.notFound.shrines, 'shrine-not-activated');
             SavegameEditor.markMap(towers, 'tower');
             SavegameEditor.markMap(divineBeasts, 'divine-beast');
             SavegameEditor.markMap(labos, 'labo');
@@ -1262,6 +1266,7 @@ function showWaypointTooltip(waypoint) {
         waypoint.classList.contains('warp');
     var isIcon =
         waypoint.classList.contains('shrine') ||
+        waypoint.classList.contains('shrine-not-activated') ||
         waypoint.classList.contains('shrine-completed') ||
         waypoint.classList.contains('tower') ||
         waypoint.classList.contains('korok') ||
@@ -1335,8 +1340,11 @@ function renderStats(korokCount, shrinesCompletedCount) {
     setValue('span-number-koroks', korokCount);
     setValue('span-number-locations', locationValues.found.locations);
     setValue('span-number-total-locations', 226);
-    setValue('span-number-shrines', locationValues.found.shrines);
+    setValue('span-number-shrines', locationValues.found.shrines - shrinesCompletedCount);
     setValue('span-number-total-shrines', totalShrines);
+    setValue('span-number-shrines-not-activated',
+        locationValues.notFound.shrines ? Object.keys(locationValues.notFound.shrines).length : 0);
+    setValue('span-number-total-shrines-not-activated', totalShrines);
     setValue('span-number-shrines-completed', shrinesCompletedCount);
     setValue('span-number-total-shrines-completed', totalShrineCompletions);
     setValue('span-number-towers', locationValues.found.towers);
