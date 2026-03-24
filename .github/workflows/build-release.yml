@@ -55,6 +55,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ env.VERSION }}" \
-            --generate-notes \
-            dist/*.exe dist/latest.yml dist/latest-portable.yml
+          if gh release view "v${{ env.VERSION }}" > /dev/null 2>&1; then
+            echo "Release v${{ env.VERSION }} already exists — skipping."
+          else
+            gh release create "v${{ env.VERSION }}" \
+              --generate-notes \
+              dist/*.exe dist/latest.yml dist/latest-portable.yml
+          fi
