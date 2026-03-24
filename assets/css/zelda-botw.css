@@ -580,6 +580,9 @@ body.test-mode #test-banner {
 #toolbar label[data-type='shrine-completed']::before {
     background: #ffff00;
 }
+#toolbar label[data-type='shrine-not-activated']::before {
+    background: #ff5555;
+}
 #toolbar label[data-type='tower']::before {
     background: #cc00ff;
 }
@@ -784,6 +787,7 @@ body.test-mode #test-banner {
 #toolbar label #span-number-total-koroks,
 #toolbar label #span-number-total-locations,
 #toolbar label #span-number-total-shrines,
+#toolbar label #span-number-total-shrines-not-activated,
 #toolbar label #span-number-total-shrines-completed,
 #toolbar label #span-number-total-towers,
 #toolbar label #span-number-total-divine-beasts {
@@ -1316,6 +1320,7 @@ button.no-text.with-icon:before {
 /* SVG/PNG icon waypoints — shared base */
 #map-container .waypoint.korok,
 #map-container .waypoint.shrine,
+#map-container .waypoint.shrine-not-activated,
 #map-container .waypoint.shrine-completed,
 #map-container .waypoint.tower,
 #map-container .waypoint.labo,
@@ -1344,6 +1349,11 @@ button.no-text.with-icon:before {
 #map-container .waypoint.shrine-completed {
     background-image: url('../icons/mapicon_dungeon_dlc.svg');
     box-shadow: 0 0 0 1px #ffff00;
+    background-size: 160%;
+}
+#map-container .waypoint.shrine-not-activated {
+    background-image: url('../icons/mapicon_dungeon.svg');
+    box-shadow: 0 0 0 1px #ff5555;
     background-size: 160%;
 }
 #map-container .waypoint.tower {

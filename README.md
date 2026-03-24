@@ -17,13 +17,19 @@ Each entry is color-coded, hoverable, and toggleable:
 | Korok seeds | Gold | 900 |
 | Locations | Orange | 226 |
 | Locations (Visited) | Teal | — |
-| Shrines Discovered | Cyan | 120 |
-| Shrines Completed | Yellow | 120 |
+| Shrines (Not Activated) | Bright Red | 120 |
+| Shrines (Activated) | Cyan | 120 |
+| Shrines (Completed) | Yellow | 120 |
 | Towers | Violet | 15 |
 | Divine Beasts | Red | 4 |
 | Player Position | White | — |
 
 Each metric row shows the stat label on the left and its count on the right, with a color bar below. All UI state (visible categories, service filters, track player, zoom level, dismissed waypoints, map view) is persisted server-side and restored on every page load.
+
+Shrines have three distinct states:
+- **Not Activated** (bright red) — shrine location not yet found on the map
+- **Activated** (cyan) — shrine found and fast travel unlocked, but inner trial not completed
+- **Completed** (yellow) — inner trial has been beaten
 
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
