@@ -283,12 +283,17 @@ function getIconPath() {
     return path.join(base, 'favicon.ico');
 }
 
+const REPO_URL = 'https://github.com/xanderphillips/botw-live-savegame-monitor';
+
 function buildMenu(serverOk, updateVersion = null) {
     const url = currentConfig ? `http://localhost:${currentConfig.port}` : null;
     const items = [
+        { label: `BotW Live Savegame Monitor v${app.getVersion()}`, enabled: false },
+        { type: 'separator' },
         serverOk && url
             ? { label: 'Open Browser', click: () => shell.openExternal(url) }
             : { label: 'Server error — Reconfigure…', click: reconfigure },
+        { label: 'View on GitHub', click: () => shell.openExternal(REPO_URL) },
         { type: 'separator' },
         { label: 'Reconfigure…', click: reconfigure },
         { type: 'separator' },
