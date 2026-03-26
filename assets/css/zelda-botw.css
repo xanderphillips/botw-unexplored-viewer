@@ -519,6 +519,43 @@ body.test-mode #test-banner {
     font-size: 0.85em;
     margin-left: 8px;
 }
+.bmc-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-left: 10px;
+}
+.bmc-link {
+    color: var(--botw-gold-light);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(201, 169, 89, 0.3);
+    transition: color 0.3s, border-color 0.3s, text-shadow 0.3s;
+    white-space: nowrap;
+}
+.bmc-link:hover {
+    color: var(--botw-cyan);
+    border-color: var(--botw-cyan);
+    text-shadow: 0 0 10px var(--sheikah-glow);
+}
+.bmc-qr-popup {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 1000;
+    background: rgba(10, 20, 35, 0.95);
+    border: 1px solid rgba(201, 169, 89, 0.4);
+    border-radius: 6px;
+    padding: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+.bmc-wrapper:hover .bmc-qr-popup {
+    display: block;
+}
+.bmc-qr-img {
+    display: block;
+    width: 140px;
+    height: 140px;
+}
 .header-buttons a.button {
     text-decoration: none;
     color: white;
