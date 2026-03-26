@@ -231,7 +231,7 @@ function initAutoUpdater() {
         }).then(() => {
             // Release the lock before quitting so the new exe can acquire it cleanly
             app.releaseSingleInstanceLock();
-            autoUpdater.quitAndInstall();
+            autoUpdater.quitAndInstall(true, true);
         });
     });
 
