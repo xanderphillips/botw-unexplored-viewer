@@ -60,5 +60,5 @@ jobs:
           else
             gh release create "v${{ env.VERSION }}" \
               --generate-notes \
-              dist/*.exe dist/latest.yml dist/latest-portable.yml
+              dist/*.exe dist/latest.yml
           fi

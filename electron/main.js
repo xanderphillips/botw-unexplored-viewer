@@ -178,16 +178,13 @@ function wipeAppData() {
 
 function createDesktopShortcut() {
     if (!app.isPackaged) return;
-    // Only manage the desktop shortcut for the portable exe.
-    // The NSIS installer creates and manages its own shortcut; running this for
-    // an NSIS build causes a duplicate icon when the installer and app both write
-    // to different desktop locations (Public vs User desktop).
-    if (!process.env.PORTABLE_EXECUTABLE_FILE) return;
-    const exePath = process.env.PORTABLE_EXECUTABLE_FILE;
+    const exePath = process.execPath;
+    const safeExePath = exePath.replace(/'/g, "''");
     const ps = [
         `$ws = New-Object -ComObject WScript.Shell`,
         `$s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\\BotW Live Savegame Monitor.lnk')`,
-        `$s.TargetPath = '${exePath.replace(/'/g, "''")}'`,
+        `$s.TargetPath = '${safeExePath}'`,
+        `$s.IconLocation = '${safeExePath},0'`,
         `$s.Save()`,
     ].join('; ');
     try {
@@ -198,11 +195,6 @@ function createDesktopShortcut() {
 }
 
 function initAutoUpdater() {
-    if (process.env.PORTABLE_EXECUTABLE_FILE) {
-        autoUpdater.channel = 'portable'; // fetches latest-portable.yml
-    }
-    // NSIS build uses default channel → fetches latest.yml
-
     autoUpdater.autoDownload = false;
     autoUpdater.logger = {
         info:  (msg) => logError('[updater:info] '  + msg),
