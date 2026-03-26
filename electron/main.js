@@ -178,7 +178,12 @@ function wipeAppData() {
 
 function createDesktopShortcut() {
     if (!app.isPackaged) return;
-    const exePath = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+    // Only manage the desktop shortcut for the portable exe.
+    // The NSIS installer creates and manages its own shortcut; running this for
+    // an NSIS build causes a duplicate icon when the installer and app both write
+    // to different desktop locations (Public vs User desktop).
+    if (!process.env.PORTABLE_EXECUTABLE_FILE) return;
+    const exePath = process.env.PORTABLE_EXECUTABLE_FILE;
     const ps = [
         `$ws = New-Object -ComObject WScript.Shell`,
         `$s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\\BotW Live Savegame Monitor.lnk')`,
