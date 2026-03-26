@@ -521,6 +521,187 @@ function parseSaveMetrics(buf) {
     return metrics;
 }
 
+// GET /openapi.json — OpenAPI 3.0 API discovery document
+app.get('/openapi.json', (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.json({
+        openapi: '3.0.3',
+        info: {
+            title: 'BotW Live Savegame Monitor',
+            version: '1.6.4',
+            description: 'API for the BotW Unexplored Area Viewer — reads Cemu/Switch save files and manages UI state.'
+        },
+        paths: {
+            '/data/game_data.sav': {
+                get: {
+                    summary: 'Download the most recently modified save file',
+                    responses: {
+                        200: { description: 'Raw binary save file', content: { 'application/octet-stream': {} } },
+                        404: { description: 'No save file found' }
+                    }
+                }
+            },
+            '/api/mtime': {
+                get: {
+                    summary: 'Return save file mtime and state version',
+                    responses: {
+                        200: { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { mtime: { type: 'number' }, stateVersion: { type: 'integer' } } } } } }
+                    }
+                }
+            },
+            '/api/version': {
+                get: {
+                    summary: 'Return the app version',
+                    responses: {
+                        200: { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, version: { type: 'string' } } } } } }
+                    }
+                }
+            },
+            '/api/events': {
+                get: {
+                    summary: 'SSE stream — pushes state-change and reload-save events',
+                    responses: {
+                        200: { description: 'text/event-stream', content: { 'text/event-stream': {} } }
+                    }
+                }
+            },
+            '/api/state': {
+                get: {
+                    summary: 'Return full UI state',
+                    responses: { 200: { description: 'OK' } }
+                },
+                put: {
+                    summary: 'Replace full UI state',
+                    responses: { 200: { description: 'OK' } }
+                }
+            },
+            '/api/state/hidden-types': {
+                patch: {
+                    summary: 'Toggle icon type visibility',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { type: { type: 'string' }, hidden: { type: 'boolean' } }, required: ['type', 'hidden'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                }
+            },
+            '/api/state/hidden-services': {
+                patch: {
+                    summary: 'Toggle service filter visibility',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { service: { type: 'string' }, hidden: { type: 'boolean' } }, required: ['service', 'hidden'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                }
+            },
+            '/api/state/test-mode': {
+                patch: {
+                    summary: 'Show or hide the testing banner',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { enabled: { type: 'boolean' }, phase: { type: 'string' } }, required: ['enabled'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                }
+            },
+            '/api/state/player-position': {
+                patch: {
+                    summary: 'Override player position (BotW world coords)',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { x: { type: 'number' }, z: { type: 'number' } }, required: ['x', 'z'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                },
+                delete: {
+                    summary: 'Clear player position override',
+                    responses: { 200: { description: 'OK' } }
+                }
+            },
+            '/api/state/stat-overrides': {
+                put: {
+                    summary: 'Override stat display values for testing',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { koroks: { type: 'number' }, locations: { type: 'number' }, shrines: { type: 'number' }, shrinesCompleted: { type: 'number' }, shrinesNotActivated: { type: 'number' }, towers: { type: 'number' }, divineBeasts: { type: 'number' } } } } } },
+                    responses: { 200: { description: 'OK' } }
+                },
+                delete: {
+                    summary: 'Clear stat overrides',
+                    responses: { 200: { description: 'OK' } }
+                }
+            },
+            '/api/state/player-stat-overrides': {
+                put: {
+                    summary: 'Override player stat display values for testing',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { hearts: { type: 'number' }, stamina: { type: 'number' }, playtime: { type: 'number' }, rupees: { type: 'number' }, motorcycle: { type: 'number' } } } } } },
+                    responses: { 200: { description: 'OK' } }
+                },
+                delete: {
+                    summary: 'Clear player stat overrides',
+                    responses: { 200: { description: 'OK' } }
+                }
+            },
+            '/api/state/server-status-override': {
+                put: {
+                    summary: 'Override server status dot and timestamp display',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { timestamp: { type: 'number' }, online: { type: 'boolean' } } } } } },
+                    responses: { 200: { description: 'OK' } }
+                },
+                delete: {
+                    summary: 'Clear server status override',
+                    responses: { 200: { description: 'OK' } }
+                }
+            },
+            '/api/state/track-player': {
+                patch: {
+                    summary: 'Enable or disable player position tracking',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { enabled: { type: 'boolean' } }, required: ['enabled'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                }
+            },
+            '/api/state/track-zoom': {
+                patch: {
+                    summary: 'Set player tracking zoom level (5–90)',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { zoom: { type: 'number', minimum: 5, maximum: 90 } }, required: ['zoom'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                }
+            },
+            '/api/state/map-view': {
+                patch: {
+                    summary: 'Set map pan/zoom viewport',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { scale: { type: 'number', nullable: true }, panX: { type: 'number', nullable: true }, panY: { type: 'number', nullable: true } } } } } },
+                    responses: { 200: { description: 'OK' } }
+                }
+            },
+            '/api/state/dismissed': {
+                post: {
+                    summary: 'Mark a waypoint as manually dismissed',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { type: { type: 'string', enum: ['korok', 'location'] }, name: { type: 'string' } }, required: ['type', 'name'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                },
+                delete: {
+                    summary: 'Restore a dismissed waypoint',
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { type: { type: 'string', enum: ['korok', 'location'] }, name: { type: 'string' } }, required: ['type', 'name'] } } } },
+                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                }
+            },
+            '/api/state/dismissed/all': {
+                delete: {
+                    summary: 'Clear all dismissed waypoints',
+                    responses: { 200: { description: 'OK' } }
+                }
+            },
+            '/api': {
+                get: {
+                    summary: 'Debug — parse save file and return raw metrics',
+                    responses: {
+                        200: { description: 'Parsed save metrics' },
+                        404: { description: 'No save file found' }
+                    }
+                }
+            },
+            '/api/test/run': {
+                post: {
+                    summary: 'Run the full server-side UI test suite (~30s)',
+                    responses: {
+                        200: { description: 'Test results' },
+                        409: { description: 'Test already running' },
+                        500: { description: 'Test error' }
+                    }
+                }
+            }
+        }
+    });
+});
+
 app.get('/api', (req, res) => {
     getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
