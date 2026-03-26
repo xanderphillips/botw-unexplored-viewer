@@ -4,9 +4,8 @@
 
 A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save).
 
-**Three ways to run it:**
-- **Windows installer (recommended for most users)** — installs to Program Files, creates Start Menu and desktop shortcuts, and registers a clean uninstaller in Add/Remove Programs. Download from [Releases](../../releases).
-- **Windows portable exe** — single file, no installation, place it anywhere. Download from [Releases](../../releases).
+**Two ways to run it:**
+- **Windows installer** — installs to Program Files, creates Start Menu and desktop shortcuts, and registers a clean uninstaller in Add/Remove Programs. Download from [Releases](../../releases).
 - **Docker** — for users who prefer containers or are running on Linux/macOS.
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
@@ -201,21 +200,11 @@ The easiest way to run the viewer — no Docker, no Node.js, no command line.
 - Windows 10 or later (x64)
 - Cemu emulator with at least one save file present
 
-### Choosing a download
-
-Two exe files are published to each release:
-
-| | Installer (`*Setup*.exe`) | Portable (`*.exe`, no "Setup") |
-|---|---|---|
-| Installation | Program Files, Start Menu, desktop shortcut | None — single file, place anywhere |
-| Uninstall | Add/Remove Programs | Delete the file |
-| Auto-updates | Yes — checks on launch, prompts via tray | Yes — checks on launch, prompts via tray |
-
 ### Setup
 
-1. Download your preferred build from [Releases](../../releases).
+1. Download the installer from [Releases](../../releases).
 
-2. **Installer:** run the Setup exe and follow the wizard. **Portable:** run the exe directly — no installation needed.
+2. Run the Setup exe and follow the wizard.
 
 3. On first launch a setup dialog appears. The app automatically detects your Cemu save folder and pre-fills the path. Confirm it (or browse to a different folder) and click **Save & Start**.
 
@@ -238,7 +227,7 @@ Right-click the tray icon to access:
 
 - **Firewall prompt**: On first run Windows Firewall will ask whether to allow the app to communicate on your network. Click **Allow access** — this is required so your browser can connect to the local server. The server only listens on your local machine; no data leaves your network.
 
-- **Antivirus / false positives**: This app is built with [Electron](https://www.electronjs.org), which bundles Chromium and Node.js into a self-extracting portable exe. The self-extraction behavior (writing files to `%APPDATA%\botw-live-savegame-monitor` on first run) is normal for Electron portable apps but can trigger antivirus heuristics. This is a known characteristic of unsigned Electron apps — see [Electron's code signing documentation](https://www.electronjs.org/docs/latest/tutorial/code-signing) for context. If your antivirus flags it, you can add an exception for `%APPDATA%\botw-live-savegame-monitor` or verify the download against the release checksum.
+- **Antivirus / false positives**: This app is built with [Electron](https://www.electronjs.org), which bundles Chromium and Node.js. Unsigned Electron apps can occasionally trigger antivirus heuristics — this is a known characteristic. See [Electron's code signing documentation](https://www.electronjs.org/docs/latest/tutorial/code-signing) for context. If your antivirus flags it, verify the download against the release checksum.
 
 - Configuration is saved at `%APPDATA%\botw-live-savegame-monitor\config.json`.
 - UI state (visible categories, dismissed waypoints, map position, etc.) persists between runs.
