@@ -203,14 +203,21 @@ function initAutoUpdater() {
     };
     autoUpdater.on('error', (e) => logError('[updater:error] ' + e.message));
 
-    autoUpdater.on('update-available', (info) => {
+    autoUpdater.on('update-available', async (info) => {
         if (!tray) return;
-        tray.displayBalloon({
-            title:    'BotW Live Savegame Monitor',
-            content:  `Update available: v${info.version} — right-click tray to install`,
-            iconType: 'info',
-        });
         tray.setContextMenu(buildMenu(true, info.version));
+        const { response } = await require('electron').dialog.showMessageBox({
+            type:      'info',
+            title:     'BotW Live Savegame Monitor',
+            message:   `Update available: v${info.version}`,
+            detail:    'A new version is available. Would you like to download and install it now?',
+            buttons:   ['Install Now', 'Later'],
+            defaultId: 0,
+            cancelId:  1,
+        });
+        if (response === 0) {
+            autoUpdater.downloadUpdate().catch((e) => logError('[updater] downloadUpdate error: ' + e.message));
+        }
     });
 
     autoUpdater.on('update-downloaded', () => {
