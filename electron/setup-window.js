@@ -3,7 +3,6 @@ const path = require('path');
 const { BrowserWindow, ipcMain, dialog } = require('electron');
 
 let _currentConfig = null;
-let _isFirstRun    = false;
 let _windowOpen    = false;
 
 /**
@@ -16,7 +15,6 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
     if (_windowOpen) return Promise.resolve(null);
     _windowOpen = true;
     _currentConfig = existingConfig;
-    _isFirstRun    = isFirstRun;
 
     return new Promise((resolve) => {
         let resolved = false;
@@ -51,7 +49,7 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
 
         // IPC: renderer submits config
         const handleSaveConfig = (event, cfg) => {
-            const { savePath, port, createShortcut } = cfg || {};
+            const { savePath, port } = cfg || {};
             if (!savePath || typeof savePath !== 'string') {
                 return { ok: false, error: 'Invalid save path' };
             }
@@ -62,9 +60,8 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
             if (!p || p < 1024 || p > 65535) {
                 return { ok: false, error: 'Invalid port' };
             }
-            const saved = { savePath: savePath.trim(), port: p, createShortcut: !!createShortcut };
             resolved = true;
-            resolve(saved);
+            resolve({ savePath: savePath.trim(), port: p });
             win.close();
             return { ok: true };
         };
@@ -74,16 +71,12 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
         const handleGetConfigInvoke = () => _currentConfig;
         ipcMain.handle('get-config', handleGetConfigInvoke);
 
-        const handleGetIsFirstRun = () => _isFirstRun;
-        ipcMain.handle('get-is-first-run', handleGetIsFirstRun);
-
         // Clean up all handlers when the window closes
         win.on('closed', () => {
             _windowOpen = false;
             ipcMain.removeHandler('pick-folder');
             ipcMain.removeHandler('save-config');
             ipcMain.removeHandler('get-config');
-            ipcMain.removeHandler('get-is-first-run');
             if (!resolved) resolve(null);
         });
     });

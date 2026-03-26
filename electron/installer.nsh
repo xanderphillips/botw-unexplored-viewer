@@ -1,12 +1,14 @@
 ; Custom NSIS install/uninstall hooks.
-; Creates the desktop shortcut with explicit icon so it always shows correctly.
-; electron-builder's built-in createDesktopShortcut is disabled in package.json
-; to avoid duplicate or icon-less shortcuts.
+; Creates desktop and Start Menu shortcuts with explicit icon so they always show correctly.
+; electron-builder's built-in createDesktopShortcut and createStartMenuShortcut are disabled
+; in package.json to avoid duplicate or icon-less shortcuts.
 
 !macro customInstall
     CreateShortcut "$DESKTOP\BotW Live Savegame Monitor.lnk" "$INSTDIR\botw-ls-monitor.exe" "" "$INSTDIR\botw-ls-monitor.exe" 0
+    CreateShortcut "$SMPROGRAMS\BotW Live Savegame Monitor.lnk" "$INSTDIR\botw-ls-monitor.exe" "" "$INSTDIR\botw-ls-monitor.exe" 0
 !macroend
 
 !macro customUnInstall
     Delete "$DESKTOP\BotW Live Savegame Monitor.lnk"
+    Delete "$SMPROGRAMS\BotW Live Savegame Monitor.lnk"
 !macroend
