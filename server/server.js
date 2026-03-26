@@ -528,7 +528,7 @@ app.get('/openapi.json', (req, res) => {
         openapi: '3.0.3',
         info: {
             title: 'BotW Live Savegame Monitor',
-            version: '1.6.4',
+            version: '1.6.5',
             description: 'API for the BotW Unexplored Area Viewer — reads Cemu/Switch save files and manages UI state.'
         },
         paths: {
