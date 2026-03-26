@@ -9,6 +9,9 @@ COPY server/package*.json ./
 # Install dependencies
 RUN npm install
 
+# Copy root package.json for version info
+COPY package.json ./package.json.root
+
 # Copy server files (from server/ directory relative to build context)
 COPY server/server.js ./
 COPY server/state.js ./

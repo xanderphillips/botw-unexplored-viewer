@@ -514,6 +514,11 @@ body.test-mode #test-banner {
     border-color: var(--botw-cyan);
     text-shadow: 0 0 10px var(--sheikah-glow);
 }
+.header-buttons .app-version {
+    color: var(--botw-text-muted);
+    font-size: 0.85em;
+    margin-left: 8px;
+}
 .header-buttons a.button {
     text-decoration: none;
     color: white;
