@@ -26,6 +26,8 @@
       "index.html",
       "favicon.png",
       "favicon.ico",
+      "package.json",
+      "package-lock.json",
       "node_modules/**/*"
     ],
     "copyright": "Copyright © 2026 xanderphillips",
