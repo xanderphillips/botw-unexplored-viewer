@@ -94,10 +94,12 @@ app.get('/api/mtime', (req, res) => {
 // GET /api/version — return the app version from root package.json
 app.get('/api/version', (req, res) => {
     try {
-        // Try package.json.root (Docker) first, then package.json (electron binary)
-        let packageJsonPath = path.join(__dirname, 'package.json.root');
+        // STATIC_ROOT is set by launcher.js to the app root (electron binary).
+        // In Docker, __dirname is already the app root and package.json.root is used.
+        const rootDir = process.env.STATIC_ROOT || __dirname;
+        let packageJsonPath = path.join(rootDir, 'package.json.root');
         if (!fs.existsSync(packageJsonPath)) {
-            packageJsonPath = path.join(__dirname, 'package.json');
+            packageJsonPath = path.join(rootDir, 'package.json');
         }
         const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf-8');
         const packageJson = JSON.parse(packageJsonContent);
