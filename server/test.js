@@ -24,7 +24,7 @@ const SLOW = 2500;    // ms between quadrant moves
 const ZOOM_STEP = 300; // ms between zoom steps
 const BLINK = 300;    // ms between blink toggles
 
-async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave }) {
+async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave, hasBrowserClients }) {
     const checks = [];
 
     function check(label, pass) {
@@ -45,6 +45,10 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave 
     }
 
     const pre = readState();
+
+    // ── Pre-flight: SSE client detection ─────────────────────────────────────
+    console.log('--- Pre-flight: SSE Detection ---');
+    check('hasBrowserClients() returns true when SSE client connected', hasBrowserClients());
 
     // ── Phase 1: Sidebar Metrics ───────────────────────────────────────────────
     console.log('--- Phase 1: Sidebar Metrics ---');
