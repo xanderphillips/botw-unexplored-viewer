@@ -231,7 +231,7 @@ process.env.STATE_DIR   = APP_DATA_DIR;
 // In packaged portable (asar:false), this is the extraction dir under %LOCALAPPDATA%.
 process.env.STATIC_ROOT = app.getAppPath();
 
-const { startServer, drainSseClients } = require('../server/server');
+const { startServer, drainSseClients, hasBrowserClients } = require('../server/server');
 
 let currentHttpServer = null;
 let currentConfig     = null;
@@ -258,6 +258,11 @@ function stopExpressServer() {
             resolve();
         });
     });
+}
+
+async function openBrowserUnlessConnected(url) {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    if (!hasBrowserClients()) shell.openExternal(url);
 }
 
 // ── Tray ──────────────────────────────────────────────────────────────────────
@@ -378,7 +383,7 @@ app.whenReady().then(async () => {
         const ok = await startExpressServer(result);
         if (!ok) { setTrayError(); return; }
         const url = `http://localhost:${result.port}`;
-        shell.openExternal(url);
+        openBrowserUnlessConnected(url);
         tray.displayBalloon({
             title:    'BotW Live Savegame Monitor',
             content:  'Running in the system tray. Right-click the icon to open the browser or quit.',
@@ -392,7 +397,7 @@ app.whenReady().then(async () => {
     const ok = await startExpressServer(currentConfig);
     if (!ok) { setTrayError(); return; }
 
-    shell.openExternal(`http://localhost:${currentConfig.port}`);
+    openBrowserUnlessConnected(`http://localhost:${currentConfig.port}`);
 
     initAutoUpdater();
 });
