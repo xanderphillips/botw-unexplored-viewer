@@ -730,7 +730,7 @@ app.post('/api/test/run', async (req, res) => {
     _testRunning = true;
     try {
         const { runTest } = require('./test');
-        const results = await runTest({ writeStateAndBroadcast, readState, broadcastReloadSave });
+        const results = await runTest({ writeStateAndBroadcast, readState, broadcastReloadSave, hasBrowserClients });
         res.json({ ok: true, results });
     } catch (e) {
         res.status(500).json({ ok: false, error: e.message });
