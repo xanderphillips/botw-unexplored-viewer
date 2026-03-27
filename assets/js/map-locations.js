@@ -1432,4 +1432,10 @@ var korokPaths = {
     0xe1ab1e20: {"internal_name":"Clear_Dungeon118"},
     0x96ac2eb6: {"internal_name":"Clear_Dungeon119"},
     };
-    
+
+    var divineBeastCompletions = {
+    0x18d100e9: {"internal_name":"Clear_RemainsElectric"},
+    0x4007e1ee: {"internal_name":"Clear_RemainsFire"},
+    0xb742dd6c: {"internal_name":"Clear_RemainsWater"},
+    0x39d2bcdf: {"internal_name":"Clear_RemainsWind"}
+    };
