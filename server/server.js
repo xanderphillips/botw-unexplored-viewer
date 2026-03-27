@@ -33,6 +33,9 @@ app.use(express.json());
 // <SAVE_PATH_BASE>/<i>/game_data.sav (matching Cemu's layout).
 let _savePathBase = process.env.SAVE_PATH_BASE || null;
 
+let _reconfigureHandler = null;
+function registerReconfigureHandler(fn) { _reconfigureHandler = fn; }
+
 function getSaveSlots() {
     return _savePathBase
         ? Array.from({ length: 6 }, (_, i) =>
@@ -92,6 +95,17 @@ app.get('/api/mtime', (req, res) => {
         res.setHeader('Cache-Control', 'no-store');
         res.json({ mtime, stateVersion: readState().stateVersion || 0 });
     });
+});
+
+// POST /api/request-reconfigure — signal Electron to open the setup window.
+// Only functional when running as a Windows exe (handler registered by main.js).
+app.post('/api/request-reconfigure', (req, res) => {
+    if (typeof _reconfigureHandler === 'function') {
+        _reconfigureHandler();
+        res.json({ ok: true });
+    } else {
+        res.status(501).json({ ok: false, error: 'Not supported in this environment' });
+    }
 });
 
 // GET /api/version — return the app version from root package.json
@@ -1188,4 +1202,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app, startServer, drainSseClients, hasBrowserClients };
+module.exports = { app, startServer, drainSseClients, hasBrowserClients, registerReconfigureHandler };
