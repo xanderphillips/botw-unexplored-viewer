@@ -231,7 +231,8 @@ process.env.STATE_DIR   = APP_DATA_DIR;
 // In packaged portable (asar:false), this is the extraction dir under %LOCALAPPDATA%.
 process.env.STATIC_ROOT = app.getAppPath();
 
-const { startServer, drainSseClients, hasBrowserClients } = require('../server/server');
+const { startServer, drainSseClients, hasBrowserClients, registerReconfigureHandler } = require('../server/server');
+registerReconfigureHandler(() => reconfigure());
 
 let currentHttpServer = null;
 let currentConfig     = null;
