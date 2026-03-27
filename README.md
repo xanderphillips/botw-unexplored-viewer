@@ -33,7 +33,6 @@ Each entry is color-coded, hoverable, and toggleable:
 | Towers | Violet | 15 |
 | Divine Beasts (Incomplete) | Red | 4 |
 | Divine Beasts (Completed) | Green | 4 |
-| Player Position | White | — |
 
 Each metric row shows the stat label on the left and its count on the right. All UI state (visible categories, service filters, track player, zoom level, dismissed waypoints, map view) is persisted server-side and restored on every page load.
 
@@ -48,16 +47,20 @@ Divine Beasts have two tracked states:
 
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
+- **Click the "Map Stats" heading** to bulk-toggle all metrics at once — all visible metrics hide together (or show if any were hidden); the heading indicator switches between ▾ (all visible) and ▸ (any hidden)
 - **Locations (Visited)** shows a teal icon at each named location you have already discovered. Icons are type-specific — stables, villages, labs, the castle, shops, and generic checkpoints each use a distinct map icon sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Undiscovered locations appear as orange dots.
 
 ### Services
 
-A **Services** section in the sidebar lists nine location subtypes that can be toggled independently: Stable, Village, Settlement, Great Fairy, Goddess Statue, Inn, General Store, Armor Shop, and Jewelry Shop. Each toggle shows or hides that icon type on the map and persists its state across browser sessions. Services are a sub-filter of Locations (Visited) — only discovered locations of the selected types are shown.
-- **Player Position** places a glowing white marker on the map at your character's last saved location. When the save was made inside a shrine, the marker appears at the shrine's overworld entrance rather than its local interior coordinates (detected via the MAP save flag)
+A **Services** section in the sidebar lists nine location subtypes that can be toggled independently: Stable, Village, Settlement, Great Fairy, Goddess Statue, Inn, General Store, Armor Shop, and Jewelry Shop. Each toggle shows or hides that icon type on the map and persists its state across browser sessions. Services are a sub-filter of Locations (Visited) — only discovered locations of the selected types are shown. Click the **Services** heading to bulk-toggle all service filters at once.
 
 ### Track Player
 
-A **Track Player** toggle sits below the Player Position row. When enabled (green), the map smoothly pans and zooms to the player's position whenever the save file is updated — keeping your character in view after each manual or auto-save. When disabled (red), the map stays at whatever location and zoom level you set. A slider beneath the toggle controls the zoom level used when tracking; the value persists between sessions. The track player toggle and zoom level are also controllable via the state API.
+A **Track Player** toggle in the sidebar controls map following. When enabled (green), the map smoothly pans and zooms to the player's position whenever the save file is updated — keeping your character in view after each manual or auto-save. When disabled (red), the map stays at whatever location and zoom level you set.
+
+The **Player Position** label below the toggle places a glowing white marker on the map at your character's last saved location. When the save was made inside a shrine, the marker appears at the shrine's overworld entrance rather than its local interior coordinates (detected via the MAP save flag).
+
+A slider beneath the Player Position label controls the zoom level used when tracking; the value persists between sessions. The track player toggle and zoom level are also controllable via the state API.
 
 ### Player Stats
 Reads directly from the save files — no game interaction required:
@@ -161,8 +164,10 @@ PATCH /api/state/track-zoom     { zoom: 5–90 }
 #### Icon Visibility
 
 ```
-PATCH /api/state/hidden-types     { type, hidden: true|false }
-PATCH /api/state/hidden-services  { service, hidden: true|false }
+PATCH /api/state/hidden-types          { type, hidden: true|false }
+PATCH /api/state/hidden-services       { service, hidden: true|false }
+PATCH /api/state/hidden-types-bulk     { types: [...], hidden: true|false }
+PATCH /api/state/hidden-services-bulk  { services: [...], hidden: true|false }
 ```
 
 Valid `type` values: `korok`, `location`, `location-discovered`, `shrine`, `shrine-not-activated`, `shrine-completed`, `tower`, `divine-beast`, `divine-beast-completed`, `labo`, `warp`, `player-position`
@@ -183,7 +188,7 @@ DELETE /api/state/dismissed/all                                        restore a
 POST /api/test/run
 ```
 
-Triggers the server-side UI test suite. The server animates all API-controllable state in five phases — sidebar toggles, map stat sweeps, player stat sweeps, last-update timestamp and status light, player tracking and quadrant moves — broadcasting each change via SSE so the browser reflects every step in real time. Returns `{ ok, results }` when complete and automatically restores all state to pre-test values.
+Triggers the server-side UI test suite. The server animates all API-controllable state in six phases — sidebar metric toggles, bulk section heading toggles, map stat sweeps, player stat sweeps, last-update timestamp and status light, player tracking and quadrant moves — broadcasting each change via SSE so the browser reflects every step in real time. Returns `{ ok, results }` when complete and automatically restores all state to pre-test values.
 
 #### Real-time Updates (SSE)
 
