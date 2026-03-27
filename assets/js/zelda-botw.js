@@ -24,6 +24,7 @@ var divineBeasts = {};
 var labos = {};
 var remainingWarps = {};
 var shrinesCompleted = 0;
+var divineBeastsCompleted = 0;
 var totalShrines = 0;
 var totalTowers = 0;
 var totalDivineBeasts = 0;
@@ -238,10 +239,12 @@ SavegameEditor = {
         var completedIndices =
             this._getCompletedShrineIndices(shrineCompletions);
         shrinesCompleted = Object.keys(completedIndices).length;
+        divineBeastsCompleted = this._countCompleted(divineBeastCompletions);
 
         renderStats(
             tempFile.readU32(this.Offsets.KOROK_SEED_COUNTER),
-            shrinesCompleted
+            shrinesCompleted,
+            divineBeastsCompleted
         );
 
         this.drawKorokPaths(locationValues.notFound.koroks);
@@ -323,7 +326,27 @@ SavegameEditor = {
         this.markMap(locationValues.notFound.shrines, 'shrine-not-activated');
         this.markMap(_completedShrinesMap, 'shrine-completed');
         this.markMap(towers, 'tower');
-        this.markMap(divineBeasts, 'divine-beast');
+
+        // Split divine beasts: completed (green) vs. incomplete (red)
+        var _completedDivineBeasts = {}, _incompleteDivineBeasts = {};
+        for (var _db in divineBeasts) {
+            var _dbName = divineBeasts[_db].internal_name.replace('Location_', '');
+            var _isComplete = false;
+            for (var _ch in divineBeastCompletions) {
+                if (divineBeastCompletions[_ch].internal_name === 'Clear_' + _dbName) {
+                    var _entry = _saveHashMap[_ch];
+                    if (_entry && _entry.value) { _isComplete = true; break; }
+                }
+            }
+            if (_isComplete) {
+                _completedDivineBeasts[_db] = divineBeasts[_db];
+            } else if (_saveHashMap[_db] && _saveHashMap[_db].value) {
+                _incompleteDivineBeasts[_db] = divineBeasts[_db];
+            }
+        }
+        this.markMap(_incompleteDivineBeasts, 'divine-beast');
+        this.markMap(_completedDivineBeasts, 'divine-beast-completed');
+
         this.markMap(labos, 'labo');
         this.markMap(remainingWarps, 'warp');
         this.markMap(locationValues.notFound.koroks, 'korok');
@@ -807,7 +830,8 @@ window.addEventListener(
                 if (ov.shrinesCompleted != null) setValue('span-number-shrines-completed', ov.shrinesCompleted);
                 if (ov.shrinesNotActivated != null) setValue('span-number-shrines-not-activated', ov.shrinesNotActivated);
                 if (ov.towers != null) setValue('span-number-towers', ov.towers);
-                if (ov.divineBeasts != null) setValue('span-number-divine-beasts', ov.divineBeasts);
+                if (ov.divineBeasts != null) setValue('span-number-divine-beasts-incomplete', ov.divineBeasts);
+                if (ov.divineBeatsCompleted != null) setValue('span-number-divine-beasts-completed', ov.divineBeatsCompleted);
             }
 
             // Test mode banner — testMode is a string (phase label) or falsy
@@ -962,7 +986,7 @@ window.addEventListener(
                 };
             }
 
-            renderStats(locationValues.found.koroks, 0);
+            renderStats(locationValues.found.koroks, 0, 0);
 
             SavegameEditor.drawKorokPaths(locationValues.notFound.koroks);
 
@@ -1262,6 +1286,7 @@ function showWaypointTooltip(waypoint) {
     var T = parseFloat(waypoint.style.top) || 0;
     var isDiamond =
         waypoint.classList.contains('divine-beast') ||
+        waypoint.classList.contains('divine-beast-completed') ||
         waypoint.classList.contains('warp');
     var isIcon =
         waypoint.classList.contains('shrine') ||
@@ -1335,7 +1360,7 @@ function removeWaypoint(element) {
 }
 
 // Render stat display values into the toolbar spans
-function renderStats(korokCount, shrinesCompletedCount) {
+function renderStats(korokCount, shrinesCompletedCount, divineBeastsCompletedCount) {
     setValue('span-number-koroks', korokCount);
     setValue('span-number-locations', 226 - locationValues.found.locations);
     setValue('span-number-total-locations', 226);
@@ -1350,8 +1375,10 @@ function renderStats(korokCount, shrinesCompletedCount) {
     setValue('span-number-total-shrines-completed', totalShrineCompletions);
     setValue('span-number-towers', locationValues.found.towers);
     setValue('span-number-total-towers', totalTowers);
-    setValue('span-number-divine-beasts', locationValues.found.divineBeasts);
-    setValue('span-number-total-divine-beasts', totalDivineBeasts);
+    setValue('span-number-divine-beasts-incomplete', locationValues.found.divineBeasts - divineBeastsCompletedCount);
+    setValue('span-number-total-divine-beasts-incomplete', totalDivineBeasts);
+    setValue('span-number-divine-beasts-completed', divineBeastsCompletedCount);
+    setValue('span-number-total-divine-beasts-completed', totalDivineBeasts);
 }
 
 // Remove all Waypoints

@@ -631,6 +631,9 @@ body.test-mode #test-banner {
 #toolbar label[data-type='divine-beast']::before {
     background: #ff2200;
 }
+#toolbar label[data-type='divine-beast-completed']::before {
+    background: #00cc44;
+}
 #toolbar label[data-type='player-position']::before {
     background: #ffffff;
     border-radius: 50%;
@@ -833,7 +836,8 @@ body.test-mode #test-banner {
 #toolbar label #span-number-total-shrines-not-activated,
 #toolbar label #span-number-total-shrines-completed,
 #toolbar label #span-number-total-towers,
-#toolbar label #span-number-total-divine-beasts {
+#toolbar label #span-number-total-divine-beasts-incomplete,
+#toolbar label #span-number-total-divine-beasts-completed {
     display: inline;
     color: var(--botw-text-muted);
     font-family: 'Noto Sans', sans-serif;
@@ -1500,6 +1504,14 @@ button.no-text.with-icon:before {
     background: #ff2200;
     border: 1px solid #990000;
     color: #990000;
+    border-radius: 0;
+    transform: translate(-2px, 0px) rotate(45deg);
+    transform-origin: top right;
+}
+#map-container .waypoint.divine-beast-completed {
+    background: #00cc44;
+    border: 1px solid #006622;
+    color: #006622;
     border-radius: 0;
     transform: translate(-2px, 0px) rotate(45deg);
     transform-origin: top right;

@@ -95,13 +95,14 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
     for (const step of [...Array(26).keys(), ...[...Array(26).keys()].reverse()]) {
         const pct = step / 25;
         writeStateAndBroadcast({ statOverrides: {
-            koroks:              Math.round(pct * 900),
-            locations:           Math.round(pct * 226),
-            shrines:             Math.round(pct * 120),
-            shrinesCompleted:    Math.round(pct * 120),
-            shrinesNotActivated: Math.round((1 - pct) * 120),
-            towers:              Math.round(pct * 15),
-            divineBeasts:        Math.round(pct * 4)
+            koroks:                Math.round(pct * 900),
+            locations:             Math.round(pct * 226),
+            shrines:               Math.round(pct * 120),
+            shrinesCompleted:      Math.round(pct * 120),
+            shrinesNotActivated:   Math.round((1 - pct) * 120),
+            towers:                Math.round(pct * 15),
+            divineBeasts:          Math.round(pct * 4),
+            divineBeatsCompleted:  Math.round(pct * 4)
         }});
         await sleep(FAST);
     }

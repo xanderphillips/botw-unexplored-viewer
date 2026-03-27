@@ -31,7 +31,8 @@ Each entry is color-coded, hoverable, and toggleable:
 | Shrines (Activated) | Cyan | 120 |
 | Shrines (Completed) | Yellow | 120 |
 | Towers | Violet | 15 |
-| Divine Beasts | Red | 4 |
+| Divine Beasts (Incomplete) | Red | 4 |
+| Divine Beasts (Completed) | Green | 4 |
 | Player Position | White | — |
 
 Each metric row shows the stat label on the left and its count on the right. All UI state (visible categories, service filters, track player, zoom level, dismissed waypoints, map view) is persisted server-side and restored on every page load.
@@ -40,6 +41,10 @@ Shrines have three distinct states:
 - **Not Activated** (bright red) — shrine location not yet found on the map
 - **Activated** (cyan) — shrine found and fast travel unlocked, but inner trial not completed
 - **Completed** (yellow) — inner trial has been beaten
+
+Divine Beasts have two tracked states:
+- **Incomplete** (red diamond) — entered at least once (fast travel unlocked), but Blight Ganon not yet defeated
+- **Completed** (green diamond) — Blight Ganon defeated
 
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
 - **Click** a metric to show/hide that icon type on the map; hidden categories appear dimmed in the sidebar and the state persists across browser sessions
@@ -115,7 +120,8 @@ Since the server polls the save files for changes every 10 seconds, this endpoin
   "shrines_not_activated":  { "found": XX, "total": 120 },
   "shrines_completed":      { "found": XX, "total": 120 },
   "towers":             { "found": XX, "total": 15 },
-  "divine_beasts":      { "found": XX, "total": 4 },
+  "divine_beasts_incomplete": { "found": XX, "total": 4 },
+  "divine_beasts_completed":  { "found": XX, "total": 4 },
   "koroks_discovered":  { "found": XX, "total": 900 }
 }
 ```
@@ -159,7 +165,7 @@ PATCH /api/state/hidden-types     { type, hidden: true|false }
 PATCH /api/state/hidden-services  { service, hidden: true|false }
 ```
 
-Valid `type` values: `korok`, `location`, `location-discovered`, `shrine`, `shrine-not-activated`, `shrine-completed`, `tower`, `divine-beast`, `labo`, `warp`, `player-position`
+Valid `type` values: `korok`, `location`, `location-discovered`, `shrine`, `shrine-not-activated`, `shrine-completed`, `tower`, `divine-beast`, `divine-beast-completed`, `labo`, `warp`, `player-position`
 
 Valid `service` values: `hatago`, `village`, `settlement`, `great_fairy`, `goddess`, `yadoya`, `shop_yorozu`, `shop_bougu`, `shop_jewel`
 

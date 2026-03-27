@@ -230,10 +230,10 @@ app.delete('/api/state/player-position', (req, res) => {
 });
 
 // PUT /api/state/stat-overrides — override stat display values for testing
-// Body: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts } (all optional numbers)
+// Body: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts, divineBeatsCompleted } (all optional numbers)
 app.put('/api/state/stat-overrides', (req, res) => {
-    const { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts } = req.body || {};
-    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts } }) });
+    const { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts, divineBeatsCompleted } = req.body || {};
+    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts, divineBeatsCompleted } }) });
 });
 
 // DELETE /api/state/stat-overrides — clear stat overrides
@@ -380,7 +380,8 @@ function loadMapHashes() {
         towers,
         divineBeasts,
         koroks: extractSection('koroks'),
-        shrineCompletions: extractSection('shrineCompletions')
+        shrineCompletions: extractSection('shrineCompletions'),
+        divineBeastCompletions: extractSection('divineBeastCompletions')
     };
 }
 
@@ -512,7 +513,13 @@ function parseSaveMetrics(buf) {
             total: metrics.shrines_discovered.total
         };
         metrics.towers = scanFlags(buf, r.u32, map.towers);
-        metrics.divine_beasts = scanFlags(buf, r.u32, map.divineBeasts);
+        const _dbDiscovered = scanFlags(buf, r.u32, map.divineBeasts);
+        const _dbCompleted = scanFlags(buf, r.u32, map.divineBeastCompletions);
+        metrics.divine_beasts_incomplete = {
+            found: _dbDiscovered.found - _dbCompleted.found,
+            total: _dbDiscovered.total
+        };
+        metrics.divine_beasts_completed = { found: _dbCompleted.found, total: _dbDiscovered.total };
         metrics.koroks_discovered = scanFlags(buf, r.u32, map.koroks);
     } catch (e) {
         metrics.location_scan_error = e.message;
@@ -610,7 +617,7 @@ app.get('/openapi.json', (req, res) => {
             '/api/state/stat-overrides': {
                 put: {
                     summary: 'Override stat display values for testing',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { koroks: { type: 'number' }, locations: { type: 'number' }, shrines: { type: 'number' }, shrinesCompleted: { type: 'number' }, shrinesNotActivated: { type: 'number' }, towers: { type: 'number' }, divineBeasts: { type: 'number' } } } } } },
+                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { koroks: { type: 'number' }, locations: { type: 'number' }, shrines: { type: 'number' }, shrinesCompleted: { type: 'number' }, shrinesNotActivated: { type: 'number' }, towers: { type: 'number' }, divineBeasts: { type: 'number' }, divineBeatsCompleted: { type: 'number' } } } } } },
                     responses: { 200: { description: 'OK' } }
                 },
                 delete: {
