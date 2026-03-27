@@ -200,6 +200,34 @@ app.patch('/api/state/hidden-services', (req, res) => {
     res.json({ ok: true, state: writeStateAndBroadcast({ hiddenServices: Array.from(set) }) });
 });
 
+// PATCH /api/state/hidden-types-bulk — show or hide all supplied map types at once
+// Body: { types: string[], hidden: boolean }
+app.patch('/api/state/hidden-types-bulk', (req, res) => {
+    const { types, hidden } = req.body || {};
+    if (!Array.isArray(types) || types.length === 0 || typeof hidden !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Body must include types (non-empty string[]) and hidden (boolean)' });
+        return;
+    }
+    const state = readState();
+    const set = new Set(state.hiddenTypes);
+    types.forEach((t) => (hidden ? set.add(t) : set.delete(t)));
+    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenTypes: Array.from(set) }) });
+});
+
+// PATCH /api/state/hidden-services-bulk — show or hide all supplied services at once
+// Body: { services: string[], hidden: boolean }
+app.patch('/api/state/hidden-services-bulk', (req, res) => {
+    const { services, hidden } = req.body || {};
+    if (!Array.isArray(services) || services.length === 0 || typeof hidden !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Body must include services (non-empty string[]) and hidden (boolean)' });
+        return;
+    }
+    const state = readState();
+    const set = new Set(state.hiddenServices);
+    services.forEach((s) => (hidden ? set.add(s) : set.delete(s)));
+    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenServices: Array.from(set) }) });
+});
+
 // PATCH /api/state/test-mode — show or hide the testing banner in the browser
 // Body: { enabled: boolean, phase?: string }
 // When enabled, testMode stores the phase label shown in the banner.
