@@ -36,15 +36,18 @@ let _savePathBase = process.env.SAVE_PATH_BASE || null;
 function getSaveSlots() {
     return _savePathBase
         ? Array.from({ length: 6 }, (_, i) =>
-              path.join(_savePathBase, String(i), 'game_data.sav'))
+              path.join(_savePathBase, String(i), 'game_data.sav')
+          )
         : Array.from({ length: 6 }, (_, i) =>
-              path.join(__dirname, `data/game_data_${i}.sav`));
+              path.join(__dirname, `data/game_data_${i}.sav`)
+          );
 }
 
 // Find the most recently modified save slot.
 // Calls callback(filePath, mtimeMs) with the winner, or callback(null, null) if none are readable.
 function getMostRecentSave(callback) {
-    const slots = getSaveSlots(); let remaining = slots.length;
+    const slots = getSaveSlots();
+    let remaining = slots.length;
     let bestPath = null;
     let bestMtime = -1;
     slots.forEach((filePath) => {
@@ -177,13 +180,19 @@ app.put('/api/state', (req, res) => {
 app.patch('/api/state/hidden-types', (req, res) => {
     const { type, hidden } = req.body || {};
     if (typeof type !== 'string' || typeof hidden !== 'boolean') {
-        res.status(400).json({ ok: false, error: 'Body must include type (string) and hidden (boolean)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include type (string) and hidden (boolean)'
+        });
         return;
     }
     const state = readState();
     const set = new Set(state.hiddenTypes);
     hidden ? set.add(type) : set.delete(type);
-    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenTypes: Array.from(set) }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ hiddenTypes: Array.from(set) })
+    });
 });
 
 // PATCH /api/state/hidden-services — toggle service filter visibility
@@ -191,41 +200,67 @@ app.patch('/api/state/hidden-types', (req, res) => {
 app.patch('/api/state/hidden-services', (req, res) => {
     const { service, hidden } = req.body || {};
     if (typeof service !== 'string' || typeof hidden !== 'boolean') {
-        res.status(400).json({ ok: false, error: 'Body must include service (string) and hidden (boolean)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include service (string) and hidden (boolean)'
+        });
         return;
     }
     const state = readState();
     const set = new Set(state.hiddenServices);
     hidden ? set.add(service) : set.delete(service);
-    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenServices: Array.from(set) }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ hiddenServices: Array.from(set) })
+    });
 });
 
 // PATCH /api/state/hidden-types-bulk — show or hide all supplied map types at once
 // Body: { types: string[], hidden: boolean }
 app.patch('/api/state/hidden-types-bulk', (req, res) => {
     const { types, hidden } = req.body || {};
-    if (!Array.isArray(types) || types.length === 0 || typeof hidden !== 'boolean') {
-        res.status(400).json({ ok: false, error: 'Body must include types (non-empty string[]) and hidden (boolean)' });
+    if (
+        !Array.isArray(types) ||
+        types.length === 0 ||
+        typeof hidden !== 'boolean'
+    ) {
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include types (non-empty string[]) and hidden (boolean)'
+        });
         return;
     }
     const state = readState();
     const set = new Set(state.hiddenTypes);
     types.forEach((t) => (hidden ? set.add(t) : set.delete(t)));
-    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenTypes: Array.from(set) }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ hiddenTypes: Array.from(set) })
+    });
 });
 
 // PATCH /api/state/hidden-services-bulk — show or hide all supplied services at once
 // Body: { services: string[], hidden: boolean }
 app.patch('/api/state/hidden-services-bulk', (req, res) => {
     const { services, hidden } = req.body || {};
-    if (!Array.isArray(services) || services.length === 0 || typeof hidden !== 'boolean') {
-        res.status(400).json({ ok: false, error: 'Body must include services (non-empty string[]) and hidden (boolean)' });
+    if (
+        !Array.isArray(services) ||
+        services.length === 0 ||
+        typeof hidden !== 'boolean'
+    ) {
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include services (non-empty string[]) and hidden (boolean)'
+        });
         return;
     }
     const state = readState();
     const set = new Set(state.hiddenServices);
     services.forEach((s) => (hidden ? set.add(s) : set.delete(s)));
-    res.json({ ok: true, state: writeStateAndBroadcast({ hiddenServices: Array.from(set) }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ hiddenServices: Array.from(set) })
+    });
 });
 
 // PATCH /api/state/test-mode — show or hide the testing banner in the browser
@@ -234,10 +269,17 @@ app.patch('/api/state/hidden-services-bulk', (req, res) => {
 app.patch('/api/state/test-mode', (req, res) => {
     const { enabled, phase } = req.body || {};
     if (typeof enabled !== 'boolean') {
-        res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include enabled (boolean)'
+        });
         return;
     }
-    const label = enabled ? (typeof phase === 'string' && phase ? phase : 'TEST MODE ACTIVE') : '';
+    const label = enabled
+        ? typeof phase === 'string' && phase
+            ? phase
+            : 'TEST MODE ACTIVE'
+        : '';
     res.json({ ok: true, state: writeStateAndBroadcast({ testMode: label }) });
 });
 
@@ -246,51 +288,108 @@ app.patch('/api/state/test-mode', (req, res) => {
 app.patch('/api/state/player-position', (req, res) => {
     const { x, z } = req.body || {};
     if (typeof x !== 'number' || typeof z !== 'number') {
-        res.status(400).json({ ok: false, error: 'Body must include x and z (numbers)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include x and z (numbers)'
+        });
         return;
     }
-    res.json({ ok: true, state: writeStateAndBroadcast({ playerPositionOverride: { x, z } }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ playerPositionOverride: { x, z } })
+    });
 });
 
 // DELETE /api/state/player-position — clear player position override
 app.delete('/api/state/player-position', (req, res) => {
-    res.json({ ok: true, state: writeStateAndBroadcast({ playerPositionOverride: null }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ playerPositionOverride: null })
+    });
 });
 
 // PUT /api/state/stat-overrides — override stat display values for testing
 // Body: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts, divineBeatsCompleted } (all optional numbers)
 app.put('/api/state/stat-overrides', (req, res) => {
-    const { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts, divineBeatsCompleted } = req.body || {};
-    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: { koroks, locations, shrines, shrinesCompleted, shrinesNotActivated, towers, divineBeasts, divineBeatsCompleted } }) });
+    const {
+        koroks,
+        locations,
+        shrines,
+        shrinesCompleted,
+        shrinesNotActivated,
+        towers,
+        divineBeasts,
+        divineBeatsCompleted
+    } = req.body || {};
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({
+            statOverrides: {
+                koroks,
+                locations,
+                shrines,
+                shrinesCompleted,
+                shrinesNotActivated,
+                towers,
+                divineBeasts,
+                divineBeatsCompleted
+            }
+        })
+    });
 });
 
 // DELETE /api/state/stat-overrides — clear stat overrides
 app.delete('/api/state/stat-overrides', (req, res) => {
-    res.json({ ok: true, state: writeStateAndBroadcast({ statOverrides: null }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ statOverrides: null })
+    });
 });
 
 // PUT /api/state/player-stat-overrides — override player stat display values for testing
 // Body: { hearts, stamina, playtime, rupees, motorcycle } (all optional)
 app.put('/api/state/player-stat-overrides', (req, res) => {
     const { hearts, stamina, playtime, rupees, motorcycle } = req.body || {};
-    res.json({ ok: true, state: writeStateAndBroadcast({ playerStatOverrides: { hearts, stamina, playtime, rupees, motorcycle } }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({
+            playerStatOverrides: {
+                hearts,
+                stamina,
+                playtime,
+                rupees,
+                motorcycle
+            }
+        })
+    });
 });
 
 // DELETE /api/state/player-stat-overrides — clear player stat overrides
 app.delete('/api/state/player-stat-overrides', (req, res) => {
-    res.json({ ok: true, state: writeStateAndBroadcast({ playerStatOverrides: null }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ playerStatOverrides: null })
+    });
 });
 
 // PUT /api/state/server-status-override — override server status dot and timestamp display
 // Body: { timestamp: number (ms), online: boolean }
 app.put('/api/state/server-status-override', (req, res) => {
     const { timestamp, online } = req.body || {};
-    res.json({ ok: true, state: writeStateAndBroadcast({ serverStatusOverride: { timestamp, online } }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({
+            serverStatusOverride: { timestamp, online }
+        })
+    });
 });
 
 // DELETE /api/state/server-status-override — clear server status override
 app.delete('/api/state/server-status-override', (req, res) => {
-    res.json({ ok: true, state: writeStateAndBroadcast({ serverStatusOverride: null }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ serverStatusOverride: null })
+    });
 });
 
 // PATCH /api/state/track-player — enable or disable player position tracking
@@ -298,10 +397,16 @@ app.delete('/api/state/server-status-override', (req, res) => {
 app.patch('/api/state/track-player', (req, res) => {
     const { enabled } = req.body || {};
     if (typeof enabled !== 'boolean') {
-        res.status(400).json({ ok: false, error: 'Body must include enabled (boolean)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include enabled (boolean)'
+        });
         return;
     }
-    res.json({ ok: true, state: writeStateAndBroadcast({ trackPlayer: enabled }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ trackPlayer: enabled })
+    });
 });
 
 // PATCH /api/state/track-zoom — set player tracking zoom level
@@ -309,7 +414,10 @@ app.patch('/api/state/track-player', (req, res) => {
 app.patch('/api/state/track-zoom', (req, res) => {
     const { zoom } = req.body || {};
     if (typeof zoom !== 'number' || zoom < 5 || zoom > 90) {
-        res.status(400).json({ ok: false, error: 'Body must include zoom (number, 5–90)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include zoom (number, 5–90)'
+        });
         return;
     }
     res.json({ ok: true, state: writeStateAndBroadcast({ trackZoom: zoom }) });
@@ -319,7 +427,10 @@ app.patch('/api/state/track-zoom', (req, res) => {
 // Body: { scale: number|null, panX: number|null, panY: number|null }
 app.patch('/api/state/map-view', (req, res) => {
     const { scale, panX, panY } = req.body || {};
-    res.json({ ok: true, state: writeStateAndBroadcast({ mapView: { scale, panX, panY } }) });
+    res.json({
+        ok: true,
+        state: writeStateAndBroadcast({ mapView: { scale, panX, panY } })
+    });
 });
 
 // POST /api/state/dismissed — mark a waypoint as manually dismissed
@@ -327,7 +438,10 @@ app.patch('/api/state/map-view', (req, res) => {
 app.post('/api/state/dismissed', (req, res) => {
     const { type, name } = req.body || {};
     if ((type !== 'korok' && type !== 'location') || typeof name !== 'string') {
-        res.status(400).json({ ok: false, error: 'Body must include type ("korok"|"location") and name (string)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include type ("korok"|"location") and name (string)'
+        });
         return;
     }
     const state = readState();
@@ -336,7 +450,12 @@ app.post('/api/state/dismissed', (req, res) => {
     list.add(name);
     res.json({
         ok: true,
-        state: writeStateAndBroadcast({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
+        state: writeStateAndBroadcast({
+            dismissedWaypoints: {
+                ...state.dismissedWaypoints,
+                [key]: Array.from(list)
+            }
+        })
     });
 });
 
@@ -345,7 +464,10 @@ app.post('/api/state/dismissed', (req, res) => {
 app.delete('/api/state/dismissed', (req, res) => {
     const { type, name } = req.body || {};
     if ((type !== 'korok' && type !== 'location') || typeof name !== 'string') {
-        res.status(400).json({ ok: false, error: 'Body must include type ("korok"|"location") and name (string)' });
+        res.status(400).json({
+            ok: false,
+            error: 'Body must include type ("korok"|"location") and name (string)'
+        });
         return;
     }
     const state = readState();
@@ -354,7 +476,12 @@ app.delete('/api/state/dismissed', (req, res) => {
     list.delete(name);
     res.json({
         ok: true,
-        state: writeStateAndBroadcast({ dismissedWaypoints: { ...state.dismissedWaypoints, [key]: Array.from(list) } })
+        state: writeStateAndBroadcast({
+            dismissedWaypoints: {
+                ...state.dismissedWaypoints,
+                [key]: Array.from(list)
+            }
+        })
     });
 });
 
@@ -363,7 +490,9 @@ app.delete('/api/state/dismissed', (req, res) => {
 app.delete('/api/state/dismissed/all', (req, res) => {
     res.json({
         ok: true,
-        state: writeStateAndBroadcast({ dismissedWaypoints: { koroks: [], locations: [] } })
+        state: writeStateAndBroadcast({
+            dismissedWaypoints: { koroks: [], locations: [] }
+        })
     });
 });
 
@@ -537,7 +666,9 @@ function parseSaveMetrics(buf) {
             map.shrineCompletions
         );
         metrics.shrines_not_activated = {
-            found: metrics.shrines_discovered.total - metrics.shrines_discovered.found,
+            found:
+                metrics.shrines_discovered.total -
+                metrics.shrines_discovered.found,
             total: metrics.shrines_discovered.total
         };
         metrics.towers = scanFlags(buf, r.u32, map.towers);
@@ -547,7 +678,10 @@ function parseSaveMetrics(buf) {
             found: _dbDiscovered.total - _dbCompleted.found,
             total: _dbDiscovered.total
         };
-        metrics.divine_beasts_completed = { found: _dbCompleted.found, total: _dbDiscovered.total };
+        metrics.divine_beasts_completed = {
+            found: _dbCompleted.found,
+            total: _dbDiscovered.total
+        };
         metrics.koroks_discovered = scanFlags(buf, r.u32, map.koroks);
     } catch (e) {
         metrics.location_scan_error = e.message;
@@ -564,14 +698,18 @@ app.get('/openapi.json', (req, res) => {
         info: {
             title: 'BotW Live Savegame Monitor',
             version: '1.6.5',
-            description: 'API for the BotW Unexplored Area Viewer — reads Cemu/Switch save files and manages UI state.'
+            description:
+                'API for the BotW Unexplored Area Viewer — reads Cemu/Switch save files and manages UI state.'
         },
         paths: {
             '/data/game_data.sav': {
                 get: {
                     summary: 'Download the most recently modified save file',
                     responses: {
-                        200: { description: 'Raw binary save file', content: { 'application/octet-stream': {} } },
+                        200: {
+                            description: 'Raw binary save file',
+                            content: { 'application/octet-stream': {} }
+                        },
                         404: { description: 'No save file found' }
                     }
                 }
@@ -580,7 +718,20 @@ app.get('/openapi.json', (req, res) => {
                 get: {
                     summary: 'Return save file mtime and state version',
                     responses: {
-                        200: { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { mtime: { type: 'number' }, stateVersion: { type: 'integer' } } } } } }
+                        200: {
+                            description: 'OK',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            mtime: { type: 'number' },
+                                            stateVersion: { type: 'integer' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -588,15 +739,32 @@ app.get('/openapi.json', (req, res) => {
                 get: {
                     summary: 'Return the app version',
                     responses: {
-                        200: { description: 'OK', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, version: { type: 'string' } } } } } }
+                        200: {
+                            description: 'OK',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            ok: { type: 'boolean' },
+                                            version: { type: 'string' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             },
             '/api/events': {
                 get: {
-                    summary: 'SSE stream — pushes state-change and reload-save events',
+                    summary:
+                        'SSE stream — pushes state-change and reload-save events',
                     responses: {
-                        200: { description: 'text/event-stream', content: { 'text/event-stream': {} } }
+                        200: {
+                            description: 'text/event-stream',
+                            content: { 'text/event-stream': {} }
+                        }
                     }
                 }
             },
@@ -613,29 +781,93 @@ app.get('/openapi.json', (req, res) => {
             '/api/state/hidden-types': {
                 patch: {
                     summary: 'Toggle icon type visibility',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { type: { type: 'string' }, hidden: { type: 'boolean' } }, required: ['type', 'hidden'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        type: { type: 'string' },
+                                        hidden: { type: 'boolean' }
+                                    },
+                                    required: ['type', 'hidden']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 }
             },
             '/api/state/hidden-services': {
                 patch: {
                     summary: 'Toggle service filter visibility',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { service: { type: 'string' }, hidden: { type: 'boolean' } }, required: ['service', 'hidden'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        service: { type: 'string' },
+                                        hidden: { type: 'boolean' }
+                                    },
+                                    required: ['service', 'hidden']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 }
             },
             '/api/state/test-mode': {
                 patch: {
                     summary: 'Show or hide the testing banner',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { enabled: { type: 'boolean' }, phase: { type: 'string' } }, required: ['enabled'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        enabled: { type: 'boolean' },
+                                        phase: { type: 'string' }
+                                    },
+                                    required: ['enabled']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 }
             },
             '/api/state/player-position': {
                 patch: {
                     summary: 'Override player position (BotW world coords)',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { x: { type: 'number' }, z: { type: 'number' } }, required: ['x', 'z'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        x: { type: 'number' },
+                                        z: { type: 'number' }
+                                    },
+                                    required: ['x', 'z']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 },
                 delete: {
                     summary: 'Clear player position override',
@@ -645,7 +877,25 @@ app.get('/openapi.json', (req, res) => {
             '/api/state/stat-overrides': {
                 put: {
                     summary: 'Override stat display values for testing',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { koroks: { type: 'number' }, locations: { type: 'number' }, shrines: { type: 'number' }, shrinesCompleted: { type: 'number' }, shrinesNotActivated: { type: 'number' }, towers: { type: 'number' }, divineBeasts: { type: 'number' }, divineBeatsCompleted: { type: 'number' } } } } } },
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        koroks: { type: 'number' },
+                                        locations: { type: 'number' },
+                                        shrines: { type: 'number' },
+                                        shrinesCompleted: { type: 'number' },
+                                        shrinesNotActivated: { type: 'number' },
+                                        towers: { type: 'number' },
+                                        divineBeasts: { type: 'number' },
+                                        divineBeatsCompleted: { type: 'number' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     responses: { 200: { description: 'OK' } }
                 },
                 delete: {
@@ -656,7 +906,22 @@ app.get('/openapi.json', (req, res) => {
             '/api/state/player-stat-overrides': {
                 put: {
                     summary: 'Override player stat display values for testing',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { hearts: { type: 'number' }, stamina: { type: 'number' }, playtime: { type: 'number' }, rupees: { type: 'number' }, motorcycle: { type: 'number' } } } } } },
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        hearts: { type: 'number' },
+                                        stamina: { type: 'number' },
+                                        playtime: { type: 'number' },
+                                        rupees: { type: 'number' },
+                                        motorcycle: { type: 'number' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     responses: { 200: { description: 'OK' } }
                 },
                 delete: {
@@ -667,7 +932,19 @@ app.get('/openapi.json', (req, res) => {
             '/api/state/server-status-override': {
                 put: {
                     summary: 'Override server status dot and timestamp display',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { timestamp: { type: 'number' }, online: { type: 'boolean' } } } } } },
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        timestamp: { type: 'number' },
+                                        online: { type: 'boolean' }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     responses: { 200: { description: 'OK' } }
                 },
                 delete: {
@@ -678,34 +955,125 @@ app.get('/openapi.json', (req, res) => {
             '/api/state/track-player': {
                 patch: {
                     summary: 'Enable or disable player position tracking',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { enabled: { type: 'boolean' } }, required: ['enabled'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        enabled: { type: 'boolean' }
+                                    },
+                                    required: ['enabled']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 }
             },
             '/api/state/track-zoom': {
                 patch: {
                     summary: 'Set player tracking zoom level (5–90)',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { zoom: { type: 'number', minimum: 5, maximum: 90 } }, required: ['zoom'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        zoom: {
+                                            type: 'number',
+                                            minimum: 5,
+                                            maximum: 90
+                                        }
+                                    },
+                                    required: ['zoom']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 }
             },
             '/api/state/map-view': {
                 patch: {
                     summary: 'Set map pan/zoom viewport',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { scale: { type: 'number', nullable: true }, panX: { type: 'number', nullable: true }, panY: { type: 'number', nullable: true } } } } } },
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        scale: {
+                                            type: 'number',
+                                            nullable: true
+                                        },
+                                        panX: {
+                                            type: 'number',
+                                            nullable: true
+                                        },
+                                        panY: { type: 'number', nullable: true }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     responses: { 200: { description: 'OK' } }
                 }
             },
             '/api/state/dismissed': {
                 post: {
                     summary: 'Mark a waypoint as manually dismissed',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { type: { type: 'string', enum: ['korok', 'location'] }, name: { type: 'string' } }, required: ['type', 'name'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        type: {
+                                            type: 'string',
+                                            enum: ['korok', 'location']
+                                        },
+                                        name: { type: 'string' }
+                                    },
+                                    required: ['type', 'name']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 },
                 delete: {
                     summary: 'Restore a dismissed waypoint',
-                    requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { type: { type: 'string', enum: ['korok', 'location'] }, name: { type: 'string' } }, required: ['type', 'name'] } } } },
-                    responses: { 200: { description: 'OK' }, 400: { description: 'Bad request' } }
+                    requestBody: {
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        type: {
+                                            type: 'string',
+                                            enum: ['korok', 'location']
+                                        },
+                                        name: { type: 'string' }
+                                    },
+                                    required: ['type', 'name']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: { description: 'OK' },
+                        400: { description: 'Bad request' }
+                    }
                 }
             },
             '/api/state/dismissed/all': {
@@ -765,7 +1133,12 @@ app.post('/api/test/run', async (req, res) => {
     _testRunning = true;
     try {
         const { runTest } = require('./test');
-        const results = await runTest({ writeStateAndBroadcast, readState, broadcastReloadSave, hasBrowserClients });
+        const results = await runTest({
+            writeStateAndBroadcast,
+            readState,
+            broadcastReloadSave,
+            hasBrowserClients
+        });
         res.json({ ok: true, results });
     } catch (e) {
         res.status(500).json({ ok: false, error: e.message });
@@ -784,7 +1157,9 @@ function startServer(port, savePath) {
     _savePathBase = savePath;
     return new Promise((resolve, reject) => {
         const httpServer = app.listen(port, '0.0.0.0');
-        httpServer.once('listening', () => resolve({ httpServer, watcher: null }));
+        httpServer.once('listening', () =>
+            resolve({ httpServer, watcher: null })
+        );
         httpServer.once('error', reject);
     });
 }
@@ -792,7 +1167,11 @@ function startServer(port, savePath) {
 /** Close all open SSE connections immediately. Call before httpServer.close(). */
 function drainSseClients() {
     sseClients.forEach((client) => {
-        try { client.end(); } catch { /* ignore */ }
+        try {
+            client.end();
+        } catch {
+            /* ignore */
+        }
     });
     sseClients.clear();
 }

@@ -47,7 +47,11 @@ function readState() {
         // Merge with defaults so new fields added in future schema versions
         // are always present even if the file predates them
         return Object.assign({}, DEFAULT_STATE, parsed, {
-            mapView: Object.assign({}, DEFAULT_STATE.mapView, parsed.mapView || {}),
+            mapView: Object.assign(
+                {},
+                DEFAULT_STATE.mapView,
+                parsed.mapView || {}
+            ),
             dismissedWaypoints: Object.assign(
                 {},
                 DEFAULT_STATE.dismissedWaypoints,
@@ -57,7 +61,10 @@ function readState() {
     } catch {
         return Object.assign({}, DEFAULT_STATE, {
             mapView: Object.assign({}, DEFAULT_STATE.mapView),
-            dismissedWaypoints: Object.assign({}, DEFAULT_STATE.dismissedWaypoints)
+            dismissedWaypoints: Object.assign(
+                {},
+                DEFAULT_STATE.dismissedWaypoints
+            )
         });
     }
 }

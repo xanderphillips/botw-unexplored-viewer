@@ -528,7 +528,10 @@ body.test-mode #test-banner {
     color: var(--botw-gold-light);
     text-decoration: none;
     border-bottom: 1px solid rgba(201, 169, 89, 0.3);
-    transition: color 0.3s, border-color 0.3s, text-shadow 0.3s;
+    transition:
+        color 0.3s,
+        border-color 0.3s,
+        text-shadow 0.3s;
     white-space: nowrap;
 }
 .bmc-link:hover {
@@ -685,7 +688,9 @@ body.test-mode #test-banner {
 #services-section .toolbar-section-title {
     cursor: pointer;
     border-radius: 2px;
-    transition: color 0.15s, background 0.15s;
+    transition:
+        color 0.15s,
+        background 0.15s;
 }
 #map-stats-section .toolbar-section-title:hover,
 #services-section .toolbar-section-title:hover {
