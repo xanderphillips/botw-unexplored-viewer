@@ -681,6 +681,27 @@ body.test-mode #test-banner {
     letter-spacing: 0.5px;
     padding: 10px 8px 4px;
 }
+#map-stats-section .toolbar-section-title,
+#services-section .toolbar-section-title {
+    cursor: pointer;
+    border-radius: 2px;
+    transition: color 0.15s, background 0.15s;
+}
+#map-stats-section .toolbar-section-title:hover,
+#services-section .toolbar-section-title:hover {
+    color: var(--botw-gold);
+    background: rgba(201, 169, 89, 0.08);
+}
+.section-toggle-indicator {
+    font-size: 9px;
+    opacity: 0.7;
+    letter-spacing: 0;
+    font-family: sans-serif;
+    font-weight: 400;
+}
+#map-stats-section {
+    padding-bottom: 6px;
+}
 .toolbar-section-title,
 .player-stats-title,
 #save-timestamp-label {
@@ -692,7 +713,7 @@ body.test-mode #test-banner {
 }
 /* Track Player toggle row — green = tracking on, red = tracking off. Click to toggle. */
 #track-player-row {
-    padding: 10px 8px 8px;
+    padding: 8px 8px 8px;
     border-top: 3px double rgba(100, 120, 140, 0.55);
     border-bottom: 1px solid rgba(201, 169, 89, 0.15);
     cursor: pointer;
@@ -735,7 +756,7 @@ body.test-mode #test-banner {
     display: block;
 }
 #player-stats-section {
-    padding: 10px 8px 8px;
+    padding: 8px 8px 6px;
     border-top: 3px double rgba(100, 120, 140, 0.55);
     border-bottom: 3px double rgba(100, 120, 140, 0.55);
     display: flex;
@@ -789,7 +810,7 @@ body.test-mode #test-banner {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    padding: 10px 10px;
+    padding: 8px 10px;
     border-top: 3px double rgba(100, 120, 140, 0.55);
 }
 #save-timestamp-label {
@@ -1437,7 +1458,7 @@ button.no-text.with-icon:before {
     display: flex;
     align-items: center;
     gap: 5px;
-    padding-top: 10px;
+    padding-top: 8px;
 }
 #services-section .toolbar-section-title::before {
     content: '';
