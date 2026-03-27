@@ -340,7 +340,7 @@ SavegameEditor = {
             }
             if (_isComplete) {
                 _completedDivineBeasts[_db] = divineBeasts[_db];
-            } else if (_saveHashMap[_db] && _saveHashMap[_db].value) {
+            } else {
                 _incompleteDivineBeasts[_db] = divineBeasts[_db];
             }
         }
