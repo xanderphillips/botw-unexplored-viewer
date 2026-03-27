@@ -762,6 +762,11 @@ function drainSseClients() {
     sseClients.clear();
 }
 
+/** Returns true if at least one browser SSE client is currently connected. */
+function hasBrowserClients() {
+    return sseClients.size > 0;
+}
+
 // Export app for Supertest integration tests
 if (require.main === module) {
     app.listen(PORT, '0.0.0.0', () => {
@@ -769,4 +774,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app, startServer, drainSseClients };
+module.exports = { app, startServer, drainSseClients, hasBrowserClients };
