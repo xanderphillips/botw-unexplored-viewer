@@ -18,6 +18,10 @@ const SVCS = [
     'hatago', 'village', 'settlement', 'great_fairy', 'goddess',
     'yadoya', 'shop_yorozu', 'shop_bougu', 'shop_jewel'
 ];
+const MAP_STATS_TYPES = [
+    'korok', 'location', 'location-discovered', 'shrine-not-activated',
+    'shrine', 'shrine-completed', 'tower', 'divine-beast', 'divine-beast-completed'
+];
 
 const FAST = 60;      // ms between rapid-fire steps
 const SLOW = 2500;    // ms between quadrant moves
@@ -87,6 +91,34 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
         await sleep(FAST);
     }
     check('all services visible', readState().hiddenServices.length === 0);
+
+    // ── Phase 1b: Bulk Section Toggles ──────────────────────────────────────
+    console.log('--- Phase 1b: Bulk Section Toggles ---');
+    setPhase('Phase 1b: Bulk Section Toggles');
+
+    // Hide all map stats at once
+    writeStateAndBroadcast({ hiddenTypes: MAP_STATS_TYPES });
+    await sleep(SLOW);
+    check('bulk hide map stats: all 9 types hidden',
+        MAP_STATS_TYPES.every((t) => readState().hiddenTypes.includes(t))
+    );
+
+    // Show all map stats at once
+    writeStateAndBroadcast({ hiddenTypes: [] });
+    await sleep(SLOW);
+    check('bulk show map stats: no types hidden', readState().hiddenTypes.length === 0);
+
+    // Hide all services at once
+    writeStateAndBroadcast({ hiddenServices: SVCS });
+    await sleep(SLOW);
+    check('bulk hide services: all 9 services hidden',
+        SVCS.every((s) => readState().hiddenServices.includes(s))
+    );
+
+    // Show all services at once
+    writeStateAndBroadcast({ hiddenServices: [] });
+    await sleep(SLOW);
+    check('bulk show services: no services hidden', readState().hiddenServices.length === 0);
 
     // ── Phase 2: Map Stats Sweep ───────────────────────────────────────────────
     console.log('--- Phase 2: Map Stats Sweep ---');
