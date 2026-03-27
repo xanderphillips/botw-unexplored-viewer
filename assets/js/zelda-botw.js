@@ -414,6 +414,7 @@ SavegameEditor = {
 
         applyHiddenStates();
         applyServiceHiddenStates();
+        updateSectionIndicators();
         _saveHashMap = null; // release after load completes — rebuilt on next load
     },
 
