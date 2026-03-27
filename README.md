@@ -210,16 +210,19 @@ The easiest way to run the viewer — no Docker, no Node.js, no command line.
 
 3. On first launch a setup dialog appears. The app automatically detects your Cemu save folder and pre-fills the path. Confirm it (or browse to a different folder) and click **Save & Start**.
 
-4. The app starts the server, opens your browser automatically, and minimizes to the **system tray** (bottom-right near the clock). No console window appears.
+4. The app starts the server, opens your browser automatically if it isn't already open to the viewer, and minimizes to the **system tray** (bottom-right near the clock). No console window appears.
 
 ### Tray icon
 
 Right-click the tray icon to access:
 
 - **Open Browser** — open the viewer in your default browser
+- **View on GitHub** — open the project repository in your browser
 - **Reconfigure…** — change the save folder or port
 - **Install Update v…** — appears when an update is available; click to download and restart
 - **Quit** — shut down the server and exit
+
+**Auto-update**: On startup the app checks GitHub for a newer release. If one is found, a dialog prompts to download and install it. Accepting downloads the update in the background; a second dialog appears when it's ready to restart. If you dismiss the prompt, the **Install Update v…** tray item remains available.
 
 > **Tip:** Windows may hide new tray icons by default. If you don't see it, click the **`^`** arrow in the system tray to expand hidden icons. You can drag it to the visible area to pin it permanently.
 
