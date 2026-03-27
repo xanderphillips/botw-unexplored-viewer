@@ -1375,7 +1375,7 @@ function renderStats(korokCount, shrinesCompletedCount, divineBeastsCompletedCou
     setValue('span-number-total-shrines-completed', totalShrineCompletions);
     setValue('span-number-towers', locationValues.found.towers);
     setValue('span-number-total-towers', totalTowers);
-    setValue('span-number-divine-beasts-incomplete', locationValues.found.divineBeasts - divineBeastsCompletedCount);
+    setValue('span-number-divine-beasts-incomplete', totalDivineBeasts - divineBeastsCompletedCount);
     setValue('span-number-total-divine-beasts-incomplete', totalDivineBeasts);
     setValue('span-number-divine-beasts-completed', divineBeastsCompletedCount);
     setValue('span-number-total-divine-beasts-completed', totalDivineBeasts);

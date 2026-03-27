@@ -516,7 +516,7 @@ function parseSaveMetrics(buf) {
         const _dbDiscovered = scanFlags(buf, r.u32, map.divineBeasts);
         const _dbCompleted = scanFlags(buf, r.u32, map.divineBeastCompletions);
         metrics.divine_beasts_incomplete = {
-            found: _dbDiscovered.found - _dbCompleted.found,
+            found: _dbDiscovered.total - _dbCompleted.found,
             total: _dbDiscovered.total
         };
         metrics.divine_beasts_completed = { found: _dbCompleted.found, total: _dbDiscovered.total };
