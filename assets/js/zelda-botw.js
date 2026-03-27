@@ -841,6 +841,7 @@ window.addEventListener(
 
             _prevAppliedState = s;
             _lastStateVersion = s.stateVersion || 0;
+            updateSectionIndicators();
         }
 
         // Set up toolbar hover highlighting — labels are always in DOM
@@ -856,6 +857,8 @@ window.addEventListener(
             applyState(s, false, true);
             setupToolbarHover();
             setupServiceToggles();
+            setupSectionHeadingToggles();
+            updateSectionIndicators();
             loadSaveFromServer();
         });
 
@@ -1009,6 +1012,7 @@ window.addEventListener(
             addWaypointListeners();
             applyHiddenStates();
             applyServiceHiddenStates();
+            updateSectionIndicators();
         });
 
         initRegionLabels();
@@ -1801,3 +1805,111 @@ function playTone(key) {
         initMapPanZoom();
     }
 })();
+
+// Update ▾/▸ indicator on section headings based on current label hidden state.
+// ▾ = all visible, ▸ = any hidden.
+function updateSectionIndicators() {
+    var sections = [
+        {
+            headingSel: '#map-stats-section .toolbar-section-title',
+            labelsSel: '#map-stats-section label[data-type]'
+        },
+        {
+            headingSel: '#services-section .toolbar-section-title',
+            labelsSel: '#services-section label[data-service]'
+        }
+    ];
+    sections.forEach(function (s) {
+        var heading = document.querySelector(s.headingSel);
+        if (!heading) return;
+        var labels = document.querySelectorAll(s.labelsSel);
+        var anyHidden = [].some.call(labels, function (l) {
+            return l.getAttribute('data-hidden') === 'true';
+        });
+        var indicator = heading.querySelector('.section-toggle-indicator');
+        if (indicator) {
+            indicator.textContent = anyHidden ? ' ▸' : ' ▾';
+        }
+    });
+}
+
+// Attach click handlers to MAP STATS and SERVICES section headings.
+// Clicking harmonizes all items in the section to all-visible or all-hidden.
+function setupSectionHeadingToggles() {
+    var MAP_STATS_TYPES = [
+        'korok', 'location', 'location-discovered', 'shrine-not-activated',
+        'shrine', 'shrine-completed', 'tower', 'divine-beast', 'divine-beast-completed'
+    ];
+    var SERVICE_TYPES = [
+        'hatago', 'village', 'settlement', 'great_fairy', 'goddess',
+        'yadoya', 'shop_yorozu', 'shop_bougu', 'shop_jewel'
+    ];
+
+    function toggleSection(headingSel, labelsSel, apiEndpoint, itemsKey, items) {
+        var heading = document.querySelector(headingSel);
+        if (!heading) return;
+        heading.addEventListener('click', function () {
+            var labels = document.querySelectorAll(labelsSel);
+            var allVisible = [].every.call(labels, function (l) {
+                return l.getAttribute('data-hidden') !== 'true';
+            });
+            var makeHidden = allVisible; // all visible → hide all; any hidden → show all
+
+            [].forEach.call(labels, function (label) {
+                if (makeHidden) {
+                    label.setAttribute('data-hidden', 'true');
+                } else {
+                    label.removeAttribute('data-hidden');
+                }
+            });
+
+            // Sync map markers
+            [].forEach.call(labels, function (label) {
+                var typeAttr = label.getAttribute('data-type') || label.getAttribute('data-service');
+                var wpSel = typeAttr
+                    ? (label.getAttribute('data-type')
+                        ? '.waypoint.' + typeAttr
+                        : '.waypoint.location-discovered[data-location-type="' + typeAttr + '"]')
+                    : null;
+                if (!wpSel) return;
+                [].forEach.call(document.querySelectorAll(wpSel), function (wp) {
+                    wp.style.display = makeHidden ? 'none' : '';
+                });
+            });
+
+            // Special case: korok path lines follow the korok toggle
+            if (itemsKey === 'types') {
+                [].forEach.call(
+                    document.querySelectorAll('#path-group .line'),
+                    function (ln) {
+                        ln.style.display = makeHidden ? 'none' : '';
+                    }
+                );
+            }
+
+            // Persist via bulk endpoint
+            var body = {};
+            body[itemsKey] = items;
+            body.hidden = makeHidden;
+            BotWApi.patch(apiEndpoint, body);
+
+            updateSectionIndicators();
+        });
+    }
+
+    toggleSection(
+        '#map-stats-section .toolbar-section-title',
+        '#map-stats-section label[data-type]',
+        '/api/state/hidden-types-bulk',
+        'types',
+        MAP_STATS_TYPES
+    );
+
+    toggleSection(
+        '#services-section .toolbar-section-title',
+        '#services-section label[data-service]',
+        '/api/state/hidden-services-bulk',
+        'services',
+        SERVICE_TYPES
+    );
+}
