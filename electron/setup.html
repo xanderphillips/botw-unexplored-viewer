@@ -107,6 +107,7 @@
     <div class="row">
       <input type="text" id="save-path" placeholder="C:\Users\...\Cemu\mlc01\usr\save\00050000\101c9400\user\80000001" />
       <button id="browse-btn">Browse…</button>
+      <button id="reset-default-btn">Reset to Default</button>
     </div>
   </div>
 
@@ -122,6 +123,7 @@
     const savePathInput = document.getElementById('save-path');
     const portInput     = document.getElementById('port');
     const browseBtn     = document.getElementById('browse-btn');
+    const resetBtn      = document.getElementById('reset-default-btn');
     const saveBtn       = document.getElementById('save-btn');
     const errorDiv      = document.getElementById('error');
 
@@ -139,6 +141,20 @@
     browseBtn.addEventListener('click', async () => {
       const chosen = await window.electronAPI.pickFolder();
       if (chosen) savePathInput.value = chosen;
+    });
+
+    resetBtn.addEventListener('click', async () => {
+      clearError();
+      try {
+        const paths = await window.electronAPI.scanCemuPaths();
+        if (paths && paths.length > 0) {
+          savePathInput.value = paths[0];
+        } else {
+          showError('No default Cemu save path found. Please browse manually.');
+        }
+      } catch (e) {
+        showError('Failed to scan for Cemu paths. Please browse manually.');
+      }
     });
 
     saveBtn.addEventListener('click', async () => {

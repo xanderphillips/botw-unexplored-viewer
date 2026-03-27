@@ -11,7 +11,7 @@ let _windowOpen    = false;
  * Resolves with { savePath, port } on save, or null if closed without saving.
  * If a setup window is already open, focuses it and returns null immediately.
  */
-function openSetupWindow(existingConfig, isFirstRun = false) {
+function openSetupWindow(existingConfig, isFirstRun = false, getCemuPaths = () => []) {
     if (_windowOpen) return Promise.resolve(null);
     _windowOpen = true;
     _currentConfig = existingConfig;
@@ -71,12 +71,17 @@ function openSetupWindow(existingConfig, isFirstRun = false) {
         const handleGetConfigInvoke = () => _currentConfig;
         ipcMain.handle('get-config', handleGetConfigInvoke);
 
+        // IPC: renderer asks for default Cemu save paths
+        const handleScanCemuPaths = () => getCemuPaths();
+        ipcMain.handle('scan-cemu-paths', handleScanCemuPaths);
+
         // Clean up all handlers when the window closes
         win.on('closed', () => {
             _windowOpen = false;
             ipcMain.removeHandler('pick-folder');
             ipcMain.removeHandler('save-config');
             ipcMain.removeHandler('get-config');
+            ipcMain.removeHandler('scan-cemu-paths');
             if (!resolved) resolve(null);
         });
     });

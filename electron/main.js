@@ -320,7 +320,7 @@ async function reconfigure() {
     if (_reconfiguring) return;
     _reconfiguring = true;
     try {
-        const result = await openSetupWindow(currentConfig, false);
+        const result = await openSetupWindow(currentConfig, false, scanCemuSavePaths);
         if (!result) return;
         saveConfig(result);
         writeVersionFile();
@@ -375,7 +375,7 @@ app.whenReady().then(async () => {
     if (isFirstRun) {
         const candidates = scanCemuSavePaths();
         const suggested  = candidates.length > 0 ? { savePath: candidates[0], port: 8080 } : null;
-        const result     = await openSetupWindow(suggested, true);
+        const result     = await openSetupWindow(suggested, true, scanCemuSavePaths);
         if (!result) { app.quit(); return; }
         saveConfig(result);
         writeVersionFile();
