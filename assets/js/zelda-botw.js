@@ -560,6 +560,30 @@ function onScroll() {
     }
 }
 
+var _saveErrorState = null; // null | 'not_found' | 'invalid'
+
+function showSaveError(type) {
+    _saveErrorState = type;
+    var banner = document.getElementById('save-error-banner');
+    var msg    = document.getElementById('save-error-message');
+    var btn    = document.getElementById('save-error-reconfigure-btn');
+    if (!banner || !msg) return;
+    if (type === 'not_found') {
+        msg.textContent = 'Save file not detected in the configured folder path.';
+        if (btn) btn.style.display = 'inline-block';
+    } else if (type === 'invalid') {
+        msg.textContent = 'Invalid save file. Possibly corrupted save file detected.';
+        if (btn) btn.style.display = 'none';
+    }
+    banner.style.display = 'flex';
+}
+
+function clearSaveError() {
+    _saveErrorState = null;
+    var banner = document.getElementById('save-error-banner');
+    if (banner) banner.style.display = 'none';
+}
+
 window.addEventListener(
     'load',
     function () {
@@ -608,7 +632,10 @@ window.addEventListener(
         function loadSaveFromServer() {
             fetch('/data/game_data.sav', { cache: 'no-store' })
                 .then(function (response) {
-                    if (!response.ok) throw new Error('Save file not found');
+                    if (!response.ok) {
+                        showSaveError('not_found');
+                        throw new Error('http ' + response.status);
+                    }
                     var mtime =
                         parseFloat(response.headers.get('X-File-Mtime')) ||
                         null;
@@ -627,6 +654,7 @@ window.addEventListener(
                         BotWApi.delete('/api/state/dismissed/all');
                     }
                     removeAllWaypoints();
+                    clearSaveError();
                     loadSavegameFromArrayBuffer(result.buf, 'game_data.sav');
                     lastMtime = result.mtime;
                     if (result.mtime) updateSaveTimestamp(result.mtime);
@@ -961,6 +989,17 @@ window.addEventListener(
         }, 1000);
         if (window.MapView) window.MapView.onZoom(_saveMapView);
 
+        var _reconfigureBtn = document.getElementById('save-error-reconfigure-btn');
+        if (_reconfigureBtn) {
+            _reconfigureBtn.addEventListener('click', function () {
+                fetch('/api/request-reconfigure', { method: 'POST' });
+            });
+        }
+        var _dismissErrorBtn = document.getElementById('save-error-dismiss-btn');
+        if (_dismissErrorBtn) {
+            _dismissErrorBtn.addEventListener('click', clearSaveError);
+        }
+
         syncStateFromServer().then(function (s) {
             applyState(s, false, true);
             setupToolbarHover();
@@ -978,6 +1017,11 @@ window.addEventListener(
                 })
                 .then(function (data) {
                     setServerOnline(true);
+                    if (!data.mtime) {
+                        showSaveError('not_found');
+                    } else if (_saveErrorState === 'not_found') {
+                        clearSaveError();
+                    }
                     if (data.mtime) updateSaveTimestamp(data.mtime);
                     if (data.mtime && data.mtime !== lastMtime) {
                         loadSaveFromServer();

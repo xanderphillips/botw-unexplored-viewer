@@ -1725,3 +1725,35 @@ button.no-text.with-icon:before {
     right: 0;
     bottom: 0;
 }
+
+#save-error-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: rgba(160, 30, 30, 0.96);
+    color: #fff;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans', sans-serif;
+}
+#save-error-message { flex: 1; }
+#save-error-reconfigure-btn,
+#save-error-dismiss-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+}
+#save-error-reconfigure-btn:hover,
+#save-error-dismiss-btn:hover {
+    background: rgba(255,255,255,0.25);
+}
