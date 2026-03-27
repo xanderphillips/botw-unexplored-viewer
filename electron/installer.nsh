@@ -11,6 +11,8 @@
 !macroend
 
 !macro customUnInstall
-    Delete "$DESKTOP\BotW Live Savegame Monitor.lnk"
-    Delete "$SMPROGRAMS\BotW Live Savegame Monitor.lnk"
+    ${ifNot} ${isUpdated}
+        Delete "$DESKTOP\BotW Live Savegame Monitor.lnk"
+        Delete "$SMPROGRAMS\BotW Live Savegame Monitor.lnk"
+    ${endIf}
 !macroend
