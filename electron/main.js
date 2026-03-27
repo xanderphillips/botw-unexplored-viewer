@@ -383,7 +383,7 @@ app.whenReady().then(async () => {
         const ok = await startExpressServer(result);
         if (!ok) { setTrayError(); return; }
         const url = `http://localhost:${result.port}`;
-        openBrowserUnlessConnected(url);
+        await openBrowserUnlessConnected(url);
         tray.displayBalloon({
             title:    'BotW Live Savegame Monitor',
             content:  'Running in the system tray. Right-click the icon to open the browser or quit.',
@@ -397,7 +397,7 @@ app.whenReady().then(async () => {
     const ok = await startExpressServer(currentConfig);
     if (!ok) { setTrayError(); return; }
 
-    openBrowserUnlessConnected(`http://localhost:${currentConfig.port}`);
+    await openBrowserUnlessConnected(`http://localhost:${currentConfig.port}`);
 
     initAutoUpdater();
 });
