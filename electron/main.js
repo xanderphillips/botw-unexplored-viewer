@@ -4,7 +4,7 @@ const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs   = require('fs');
 const os   = require('os');
-const { execFileSync, execSync } = require('child_process');
+const { execSync } = require('child_process');
 
 const { openSetupWindow } = require('./setup-window');
 
@@ -176,24 +176,6 @@ function wipeAppData() {
     }
 }
 
-function createDesktopShortcut() {
-    if (!app.isPackaged) return;
-    const exePath = process.execPath;
-    const safeExePath = exePath.replace(/'/g, "''");
-    const ps = [
-        `$ws = New-Object -ComObject WScript.Shell`,
-        `$s = $ws.CreateShortcut([Environment]::GetFolderPath('Desktop') + '\\BotW Live Savegame Monitor.lnk')`,
-        `$s.TargetPath = '${safeExePath}'`,
-        `$s.IconLocation = '${safeExePath},0'`,
-        `$s.Save()`,
-    ].join('; ');
-    try {
-        execFileSync('powershell.exe', ['-NoProfile', '-Command', ps], { timeout: 5000 });
-    } catch (e) {
-        logError('Shortcut creation failed: ' + e.message);
-    }
-}
-
 function initAutoUpdater() {
     autoUpdater.autoDownload = false;
     autoUpdater.logger = {
@@ -249,7 +231,7 @@ process.env.STATE_DIR   = APP_DATA_DIR;
 // In packaged portable (asar:false), this is the extraction dir under %LOCALAPPDATA%.
 process.env.STATIC_ROOT = app.getAppPath();
 
-const { startServer, drainSseClients } = require('../server/server');
+const { startServer, drainSseClients, hasBrowserClients } = require('../server/server');
 
 let currentHttpServer = null;
 let currentConfig     = null;
@@ -276,6 +258,11 @@ function stopExpressServer() {
             resolve();
         });
     });
+}
+
+async function openBrowserUnlessConnected(url) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    if (!hasBrowserClients()) shell.openExternal(url);
 }
 
 // ── Tray ──────────────────────────────────────────────────────────────────────
@@ -334,19 +321,17 @@ async function reconfigure() {
     try {
         const result = await openSetupWindow(currentConfig, false);
         if (!result) return;
-        const { createShortcut, ...configToSave } = result;
-        saveConfig(configToSave);
+        saveConfig(result);
         writeVersionFile();
-        currentConfig = configToSave;
+        currentConfig = result;
         await stopExpressServer();
-        const ok = await startExpressServer(configToSave);
+        const ok = await startExpressServer(result);
         if (ok) {
             tray.setContextMenu(buildMenu(true));
             tray.setToolTip('BotW Live Savegame Monitor');
         } else {
             setTrayError();
         }
-        if (createShortcut) createDesktopShortcut();
     } finally {
         _reconfiguring = false;
     }
@@ -391,21 +376,19 @@ app.whenReady().then(async () => {
         const suggested  = candidates.length > 0 ? { savePath: candidates[0], port: 8080 } : null;
         const result     = await openSetupWindow(suggested, true);
         if (!result) { app.quit(); return; }
-        const { createShortcut, ...configToSave } = result;
-        saveConfig(configToSave);
+        saveConfig(result);
         writeVersionFile();
-        currentConfig = configToSave;
+        currentConfig = result;
         createTray();
-        const ok = await startExpressServer(configToSave);
+        const ok = await startExpressServer(result);
         if (!ok) { setTrayError(); return; }
-        const url = `http://localhost:${configToSave.port}`;
-        shell.openExternal(url);
+        const url = `http://localhost:${result.port}`;
+        await openBrowserUnlessConnected(url);
         tray.displayBalloon({
             title:    'BotW Live Savegame Monitor',
             content:  'Running in the system tray. Right-click the icon to open the browser or quit.',
             iconType: 'info',
         });
-        if (createShortcut) createDesktopShortcut();
         initAutoUpdater();
         return;
     }
@@ -414,7 +397,7 @@ app.whenReady().then(async () => {
     const ok = await startExpressServer(currentConfig);
     if (!ok) { setTrayError(); return; }
 
-    shell.openExternal(`http://localhost:${currentConfig.port}`);
+    await openBrowserUnlessConnected(`http://localhost:${currentConfig.port}`);
 
     initAutoUpdater();
 });

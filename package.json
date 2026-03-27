@@ -1,6 +1,6 @@
 {
   "name": "botw-live-savegame-monitor",
-  "version": "1.6.9",
+  "version": "1.6.11",
   "description": "A browser-based interactive map overlay for *The Legend of Zelda: Breath of the Wild* (Cemu emulator). It reads your Cemu save files directly — no mods, no plugins — and renders your completion progress on a pannable, zoomable map in real time. Korok seeds, locations, shrines, towers, divine beasts, and your current player position are all shown as color-coded icons that update automatically whenever you save in-game (manual or auto-save). Runs as a Docker container on the same machine as Cemu and is accessible from any browser on your local network.",
   "main": "electron/main.js",
   "scripts": {
@@ -33,7 +33,12 @@
     "copyright": "Copyright © 2026 xanderphillips",
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "favicon.ico",
       "artifactName": "BotW-Live-Savegame-Monitor-Setup-${version}.${ext}"
@@ -42,7 +47,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": false,
-      "createStartMenuShortcut": true,
+      "createStartMenuShortcut": false,
       "shortcutName": "BotW Live Savegame Monitor",
       "include": "electron/installer.nsh",
       "deleteAppDataOnUninstall": true,

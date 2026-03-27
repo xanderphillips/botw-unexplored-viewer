@@ -115,11 +115,6 @@
     <input type="number" id="port" value="8080" min="1024" max="65535" />
   </div>
 
-  <div class="checkbox-field">
-    <input type="checkbox" id="shortcut-cb" />
-    <span id="shortcut-label">Create desktop shortcut</span>
-  </div>
-
   <button id="save-btn">Save &amp; Start</button>
   <div id="error"></div>
 
@@ -129,24 +124,16 @@
     const browseBtn     = document.getElementById('browse-btn');
     const saveBtn       = document.getElementById('save-btn');
     const errorDiv      = document.getElementById('error');
-    const shortcutCb    = document.getElementById('shortcut-cb');
-    const shortcutLabel = document.getElementById('shortcut-label');
-
-    shortcutLabel.addEventListener('click', () => { shortcutCb.checked = !shortcutCb.checked; });
 
     function showError(msg) { errorDiv.textContent = msg; }
     function clearError()   { errorDiv.textContent = ''; }
 
-    // Pre-populate fields; check shortcut box on first run
-    Promise.all([
-      window.electronAPI.getConfig(),
-      window.electronAPI.getIsFirstRun(),
-    ]).then(([cfg, isFirstRun]) => {
+    // Pre-populate fields from existing config
+    window.electronAPI.getConfig().then((cfg) => {
       if (cfg) {
         savePathInput.value = cfg.savePath || '';
         portInput.value     = cfg.port     || 8080;
       }
-      shortcutCb.checked = isFirstRun;
     }).catch(() => { showError('Failed to load configuration.'); });
 
     browseBtn.addEventListener('click', async () => {
@@ -160,7 +147,7 @@
       const port     = parseInt(portInput.value, 10);
       if (!savePath) { showError('Save folder is required.'); return; }
       if (!port || port < 1024 || port > 65535) { showError('Port must be between 1024 and 65535.'); return; }
-      const result = await window.electronAPI.saveConfig({ savePath, port, createShortcut: shortcutCb.checked });
+      const result = await window.electronAPI.saveConfig({ savePath, port });
       if (!result.ok) { showError(result.error || 'Failed to save config.'); }
     });
   </script>

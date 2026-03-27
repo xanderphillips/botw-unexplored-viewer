@@ -9,3 +9,4 @@ server/style-example.html
 favicon.ico
 dist/
 docs/superpowers/
+.worktrees/

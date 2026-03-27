@@ -730,7 +730,7 @@ app.post('/api/test/run', async (req, res) => {
     _testRunning = true;
     try {
         const { runTest } = require('./test');
-        const results = await runTest({ writeStateAndBroadcast, readState, broadcastReloadSave });
+        const results = await runTest({ writeStateAndBroadcast, readState, broadcastReloadSave, hasBrowserClients });
         res.json({ ok: true, results });
     } catch (e) {
         res.status(500).json({ ok: false, error: e.message });
@@ -762,6 +762,11 @@ function drainSseClients() {
     sseClients.clear();
 }
 
+/** Returns true if at least one browser SSE client is currently connected. */
+function hasBrowserClients() {
+    return sseClients.size > 0;
+}
+
 // Export app for Supertest integration tests
 if (require.main === module) {
     app.listen(PORT, '0.0.0.0', () => {
@@ -769,4 +774,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { app, startServer, drainSseClients };
+module.exports = { app, startServer, drainSseClients, hasBrowserClients };
