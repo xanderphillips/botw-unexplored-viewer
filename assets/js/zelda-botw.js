@@ -1050,10 +1050,6 @@ window.addEventListener(
                     } else if (
                         _saveErrorState === 'not_found' ||
                         _saveErrorState === 'invalid'
-                        // parse_incomplete intentionally excluded: the file hasn't
-                        // changed (same mtime), so the missing hashes would still be
-                        // absent. clearSaveError() is called inside loadSaveFromServer()
-                        // before each re-parse, which handles recovery when mtime changes.
                     ) {
                         clearSaveError();
                     }
