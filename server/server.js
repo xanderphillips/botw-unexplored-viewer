@@ -17,6 +17,11 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { readState, writeState } = require('./state');
+const { validateSaveBuffer } = require('./validate-save.js');
+
+// Cache last validation result so /api/mtime doesn't re-read the file on every poll.
+// Invalidated when mtime changes.
+let _saveValidationCache = { mtime: null, status: 'not_found' };
 
 const app = express();
 const PORT = parseInt(process.env.PORT, 10) || 3000;
@@ -89,11 +94,33 @@ app.get('/data/game_data.sav', (req, res) => {
     });
 });
 
-// Lightweight mtime endpoint — returns the mtime of the most recently modified save slot
+// Lightweight mtime endpoint — returns mtime and server-side save validation status.
+// saveStatus: 'ok' | 'not_found' | 'unreadable' | 'invalid_format'
 app.get('/api/mtime', (req, res) => {
     getMostRecentSave((filePath, mtime) => {
         res.setHeader('Cache-Control', 'no-store');
-        res.json({ mtime, stateVersion: readState().stateVersion || 0 });
+        const stateVersion = readState().stateVersion || 0;
+
+        if (!filePath) {
+            _saveValidationCache = { mtime: null, status: 'not_found' };
+            res.json({ mtime: null, stateVersion, saveStatus: 'not_found' });
+            return;
+        }
+
+        // Cache hit — mtime unchanged, reuse previous validation result
+        if (mtime === _saveValidationCache.mtime) {
+            res.json({ mtime, stateVersion, saveStatus: _saveValidationCache.status });
+            return;
+        }
+
+        // Cache miss — file changed (or first request): read and validate
+        fs.readFile(filePath, (err, buf) => {
+            const status = err
+                ? 'unreadable'
+                : validateSaveBuffer(buf).valid ? 'ok' : 'invalid_format';
+            _saveValidationCache = { mtime, status };
+            res.json({ mtime, stateVersion, saveStatus: status });
+        });
     });
 });
 
