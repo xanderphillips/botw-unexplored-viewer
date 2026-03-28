@@ -167,7 +167,6 @@ SavegameEditor = {
 
     /* check if savegame is valid */
     _checkValidSavegameByConsole: function (switchMode) {
-        var CONSOLE = switchMode ? 'Switch' : 'Wii U';
         tempFile.littleEndian = switchMode;
         for (var i = 0; i < this.Constants.FILESIZE.length; i++) {
             var versionHash = tempFile.readU32(0);
@@ -186,13 +185,6 @@ SavegameEditor = {
                 tempFile.readU32(4) === 0xffffffff
             ) {
                 this._getOffsets(i);
-                setValue(
-                    'version',
-                    this.Constants.VERSION[i] +
-                        '<small>mod</small> (' +
-                        CONSOLE +
-                        ')'
-                );
                 return true;
             }
         }
@@ -1565,7 +1557,7 @@ function renderStats(
     setValue('span-number-total-locations-visited', 226);
     setValue(
         'span-number-shrines',
-        locationValues.found.shrines - shrinesCompletedCount
+        Math.max(0, locationValues.found.shrines - shrinesCompletedCount)
     );
     setValue('span-number-total-shrines', totalShrines);
     setValue(
