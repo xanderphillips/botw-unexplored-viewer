@@ -64,3 +64,10 @@ test('returns valid for modded file within size window', () => {
     const buf = makeMinBuf(1200000, 0x3ef8, SENTINEL);
     assert.deepEqual(validateSaveBuffer(buf), { valid: true, reason: 'ok' });
 });
+
+test('returns valid for Waikuteru Randomizer save (0x471b header, 1022272 bytes)', () => {
+    // Randomizer save analysed 2026-03-27: structurally valid Wii U v1.5 format,
+    // 1022272 bytes (smaller than vanilla 1027208, within modded size window)
+    const buf = makeMinBuf(1022272, 0x471b, SENTINEL);
+    assert.deepEqual(validateSaveBuffer(buf), { valid: true, reason: 'ok' });
+});
