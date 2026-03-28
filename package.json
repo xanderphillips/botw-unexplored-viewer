@@ -7,7 +7,8 @@
     "lint": "eslint assets/js/zelda-botw.js server/server.js server/state.js server/test.js",
     "format": "prettier --write assets/js/zelda-botw.js server/server.js server/state.js server/test.js assets/css/",
     "format:check": "prettier --check assets/js/zelda-botw.js server/server.js server/state.js server/test.js assets/css/",
-    "build:windows": "node scripts/convert-icon.js && electron-builder --win --publish never"
+    "build:windows": "node scripts/convert-icon.js && electron-builder --win --publish never",
+    "test:server": "node --test server/validate-save.test.js"
   },
   "build": {
     "appId": "com.xanderphillips.botw-live-savegame-monitor",
