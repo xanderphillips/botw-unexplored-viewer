@@ -7,7 +7,7 @@ A browser-based interactive map overlay for *The Legend of Zelda: Breath of the 
 If you find this useful, [buy me a coffee](https://buymeacoffee.com/xanderphillips) ☕
 
 **Two ways to run it:**
-- **Windows installer** — installs to Program Files, creates Start Menu and desktop shortcuts, and registers a clean uninstaller in Add/Remove Programs. Download from [Releases](../../releases).
+- **Windows installer** — installs to Program Files, registers a clean uninstaller in Add/Remove Programs, and allows choosing a custom install directory. No shortcuts are created. Download from [Releases](../../releases).
 - **Docker** — for users who prefer containers or are running on Linux/macOS.
 
 ![Unexplored Area Viewer screenshot](Screenshot.jpg)
@@ -42,7 +42,7 @@ Shrines have three distinct states:
 - **Completed** (yellow) — inner trial has been beaten
 
 Divine Beasts have two tracked states:
-- **Incomplete** (red diamond) — entered at least once (fast travel unlocked), but Blight Ganon not yet defeated
+- **Incomplete** (red diamond) — Blight Ganon not yet defeated
 - **Completed** (green diamond) — Blight Ganon defeated
 
 - **Hover** over a metric to highlight all matching icons on the map with a glowing ring
