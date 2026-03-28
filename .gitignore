@@ -10,3 +10,5 @@ favicon.ico
 dist/
 docs/superpowers/
 .worktrees/
+.continue/
+.continueignore
