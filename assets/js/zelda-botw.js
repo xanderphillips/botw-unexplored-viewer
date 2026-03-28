@@ -415,7 +415,13 @@ SavegameEditor = {
         applyHiddenStates();
         applyServiceHiddenStates();
         updateSectionIndicators();
+
+        var _parseValidation = this._validateParsedData();
         _saveHashMap = null; // release after load completes — rebuilt on next load
+
+        if (!_parseValidation.valid) {
+            showSaveError('parse_incomplete');
+        }
     },
 
     // based on the load() method in https://github.com/marcrobledo/savegame-editors/blob/master/zelda-botw-master/zelda-botw-master.js
@@ -455,6 +461,20 @@ SavegameEditor = {
             if (entry && entry.value) count++;
         }
         return count;
+    },
+
+    // Checks that the hash map contains the critical hashes required for a valid
+    // parse. Called at the end of load() before _saveHashMap is released.
+    // KOROK_SEED_COUNTER (0x8a94e07a) presence confirms hash scanning succeeded
+    // and the file is a genuine BotW save. PLAYER_POSITION (0xa40ba103) confirms
+    // player-state data was accessible.
+    _validateParsedData: function () {
+        var missing = [];
+        if (!_saveHashMap || !_saveHashMap.hasOwnProperty(0x8a94e07a))
+            missing.push('KOROK_SEED_COUNTER');
+        if (!_saveHashMap || !_saveHashMap.hasOwnProperty(0xa40ba103))
+            missing.push('PLAYER_POSITION');
+        return { valid: missing.length === 0, missing: missing };
     },
 
     // Returns an object mapping NNN → true for each Clear_DungeonNNN flag that is set
@@ -560,7 +580,7 @@ function onScroll() {
     }
 }
 
-var _saveErrorState = null; // null | 'not_found' | 'invalid'
+var _saveErrorState = null; // null | 'not_found' | 'invalid' | 'parse_incomplete'
 
 function showSaveError(type) {
     _saveErrorState = type;
@@ -573,6 +593,9 @@ function showSaveError(type) {
         if (btn) btn.style.display = 'inline-block';
     } else if (type === 'invalid') {
         msg.textContent = 'Invalid save file. Possibly corrupted save file detected.';
+        if (btn) btn.style.display = 'none';
+    } else if (type === 'parse_incomplete') {
+        msg.textContent = 'Save file could not be fully parsed — critical game data is missing. The map may be incomplete.';
         if (btn) btn.style.display = 'none';
     }
     banner.style.display = 'flex';
