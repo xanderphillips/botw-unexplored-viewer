@@ -139,8 +139,13 @@ function _tempFileLoadFunction(){
 		SavegameEditor.load();
 		show('the-editor');
 		show('toolbar', 'flex');
+		if (typeof clearSaveError === 'function') clearSaveError();
 	}else{
-		MarcDialogs.alert('Invalid savegame file');
+		if (typeof showSaveError === 'function') {
+			showSaveError('invalid');
+		} else {
+			MarcDialogs.alert('Invalid save file. Possibly corrupted save file detected.');
+		}
 	}
 }
 

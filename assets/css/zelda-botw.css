@@ -528,7 +528,10 @@ body.test-mode #test-banner {
     color: var(--botw-gold-light);
     text-decoration: none;
     border-bottom: 1px solid rgba(201, 169, 89, 0.3);
-    transition: color 0.3s, border-color 0.3s, text-shadow 0.3s;
+    transition:
+        color 0.3s,
+        border-color 0.3s,
+        text-shadow 0.3s;
     white-space: nowrap;
 }
 .bmc-link:hover {
@@ -681,6 +684,29 @@ body.test-mode #test-banner {
     letter-spacing: 0.5px;
     padding: 10px 8px 4px;
 }
+#map-stats-section .toolbar-section-title,
+#services-section .toolbar-section-title {
+    cursor: pointer;
+    border-radius: 2px;
+    transition:
+        color 0.15s,
+        background 0.15s;
+}
+#map-stats-section .toolbar-section-title:hover,
+#services-section .toolbar-section-title:hover {
+    color: var(--botw-gold);
+    background: rgba(201, 169, 89, 0.08);
+}
+.section-toggle-indicator {
+    font-size: 9px;
+    opacity: 0.7;
+    letter-spacing: 0;
+    font-family: sans-serif;
+    font-weight: 400;
+}
+#map-stats-section {
+    padding-bottom: 6px;
+}
 .toolbar-section-title,
 .player-stats-title,
 #save-timestamp-label {
@@ -692,7 +718,7 @@ body.test-mode #test-banner {
 }
 /* Track Player toggle row — green = tracking on, red = tracking off. Click to toggle. */
 #track-player-row {
-    padding: 10px 8px 8px;
+    padding: 8px 8px 8px;
     border-top: 3px double rgba(100, 120, 140, 0.55);
     border-bottom: 1px solid rgba(201, 169, 89, 0.15);
     cursor: pointer;
@@ -735,7 +761,7 @@ body.test-mode #test-banner {
     display: block;
 }
 #player-stats-section {
-    padding: 10px 8px 8px;
+    padding: 8px 8px 6px;
     border-top: 3px double rgba(100, 120, 140, 0.55);
     border-bottom: 3px double rgba(100, 120, 140, 0.55);
     display: flex;
@@ -789,7 +815,7 @@ body.test-mode #test-banner {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    padding: 10px 10px;
+    padding: 8px 10px;
     border-top: 3px double rgba(100, 120, 140, 0.55);
 }
 #save-timestamp-label {
@@ -1437,7 +1463,7 @@ button.no-text.with-icon:before {
     display: flex;
     align-items: center;
     gap: 5px;
-    padding-top: 10px;
+    padding-top: 8px;
 }
 #services-section .toolbar-section-title::before {
     content: '';
@@ -1698,4 +1724,36 @@ button.no-text.with-icon:before {
     left: 0;
     right: 0;
     bottom: 0;
+}
+
+#save-error-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: rgba(160, 30, 30, 0.96);
+    color: #fff;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans', sans-serif;
+}
+#save-error-message { flex: 1; }
+#save-error-reconfigure-btn,
+#save-error-dismiss-btn {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+}
+#save-error-reconfigure-btn:hover,
+#save-error-dismiss-btn:hover {
+    background: rgba(255,255,255,0.25);
 }

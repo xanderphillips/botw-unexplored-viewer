@@ -231,7 +231,8 @@ process.env.STATE_DIR   = APP_DATA_DIR;
 // In packaged portable (asar:false), this is the extraction dir under %LOCALAPPDATA%.
 process.env.STATIC_ROOT = app.getAppPath();
 
-const { startServer, drainSseClients, hasBrowserClients } = require('../server/server');
+const { startServer, drainSseClients, hasBrowserClients, registerReconfigureHandler } = require('../server/server');
+registerReconfigureHandler(() => reconfigure());
 
 let currentHttpServer = null;
 let currentConfig     = null;
@@ -319,7 +320,7 @@ async function reconfigure() {
     if (_reconfiguring) return;
     _reconfiguring = true;
     try {
-        const result = await openSetupWindow(currentConfig, false);
+        const result = await openSetupWindow(currentConfig, false, scanCemuSavePaths);
         if (!result) return;
         saveConfig(result);
         writeVersionFile();
@@ -374,7 +375,7 @@ app.whenReady().then(async () => {
     if (isFirstRun) {
         const candidates = scanCemuSavePaths();
         const suggested  = candidates.length > 0 ? { savePath: candidates[0], port: 8080 } : null;
-        const result     = await openSetupWindow(suggested, true);
+        const result     = await openSetupWindow(suggested, true, scanCemuSavePaths);
         if (!result) { app.quit(); return; }
         saveConfig(result);
         writeVersionFile();

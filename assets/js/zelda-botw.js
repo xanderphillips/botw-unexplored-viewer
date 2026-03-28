@@ -133,7 +133,8 @@ SavegameEditor = {
     },
 
     _searchHash: function (hash) {
-        if (_saveHashMap && _saveHashMap.hasOwnProperty(hash)) return _saveHashMap[hash].offset;
+        if (_saveHashMap && _saveHashMap.hasOwnProperty(hash))
+            return _saveHashMap[hash].offset;
         return -1;
     },
 
@@ -166,7 +167,6 @@ SavegameEditor = {
 
     /* check if savegame is valid */
     _checkValidSavegameByConsole: function (switchMode) {
-        var CONSOLE = switchMode ? 'Switch' : 'Wii U';
         tempFile.littleEndian = switchMode;
         for (var i = 0; i < this.Constants.FILESIZE.length; i++) {
             var versionHash = tempFile.readU32(0);
@@ -185,13 +185,6 @@ SavegameEditor = {
                 tempFile.readU32(4) === 0xffffffff
             ) {
                 this._getOffsets(i);
-                setValue(
-                    'version',
-                    this.Constants.VERSION[i] +
-                        '<small>mod</small> (' +
-                        CONSOLE +
-                        ')'
-                );
                 return true;
             }
         }
@@ -328,14 +321,24 @@ SavegameEditor = {
         this.markMap(towers, 'tower');
 
         // Split divine beasts: completed (green) vs. incomplete (red)
-        var _completedDivineBeasts = {}, _incompleteDivineBeasts = {};
+        var _completedDivineBeasts = {},
+            _incompleteDivineBeasts = {};
         for (var _db in divineBeasts) {
-            var _dbName = divineBeasts[_db].internal_name.replace('Location_', '');
+            var _dbName = divineBeasts[_db].internal_name.replace(
+                'Location_',
+                ''
+            );
             var _isComplete = false;
             for (var _ch in divineBeastCompletions) {
-                if (divineBeastCompletions[_ch].internal_name === 'Clear_' + _dbName) {
+                if (
+                    divineBeastCompletions[_ch].internal_name ===
+                    'Clear_' + _dbName
+                ) {
                     var _entry = _saveHashMap[_ch];
-                    if (_entry && _entry.value) { _isComplete = true; break; }
+                    if (_entry && _entry.value) {
+                        _isComplete = true;
+                        break;
+                    }
                 }
             }
             if (_isComplete) {
@@ -399,12 +402,18 @@ SavegameEditor = {
                 tempFile.readU32(_sh + 4).toLocaleString()
             );
         _sh = this._searchHash(0xc9328299); // MOTORCYCLE
-        if (_sh !== -1)
-            setMotorcycleIndicator(tempFile.readU32(_sh + 4) > 0);
+        if (_sh !== -1) setMotorcycleIndicator(tempFile.readU32(_sh + 4) > 0);
 
         applyHiddenStates();
         applyServiceHiddenStates();
+        updateSectionIndicators();
+
+        var _parseValidation = this._validateParsedData();
         _saveHashMap = null; // release after load completes — rebuilt on next load
+
+        if (!_parseValidation.valid) {
+            showSaveError('parse_incomplete');
+        }
     },
 
     // based on the load() method in https://github.com/marcrobledo/savegame-editors/blob/master/zelda-botw-master/zelda-botw-master.js
@@ -444,6 +453,20 @@ SavegameEditor = {
             if (entry && entry.value) count++;
         }
         return count;
+    },
+
+    // Checks that the hash map contains the critical hashes required for a valid
+    // parse. Called at the end of load() before _saveHashMap is released.
+    // KOROK_SEED_COUNTER (0x8a94e07a) presence confirms hash scanning succeeded
+    // and the file is a genuine BotW save. PLAYER_POSITION (0xa40ba103) confirms
+    // player-state data was accessible.
+    _validateParsedData: function () {
+        var missing = [];
+        if (!_saveHashMap || !_saveHashMap.hasOwnProperty(0x8a94e07a))
+            missing.push('KOROK_SEED_COUNTER');
+        if (!_saveHashMap || !_saveHashMap.hasOwnProperty(0xa40ba103))
+            missing.push('PLAYER_POSITION');
+        return { valid: missing.length === 0, missing: missing };
     },
 
     // Returns an object mapping NNN → true for each Clear_DungeonNNN flag that is set
@@ -549,6 +572,33 @@ function onScroll() {
     }
 }
 
+var _saveErrorState = null; // null | 'not_found' | 'invalid' | 'parse_incomplete'
+
+function showSaveError(type) {
+    _saveErrorState = type;
+    var banner = document.getElementById('save-error-banner');
+    var msg    = document.getElementById('save-error-message');
+    var btn    = document.getElementById('save-error-reconfigure-btn');
+    if (!banner || !msg) return;
+    if (type === 'not_found') {
+        msg.textContent = 'Save file not detected in the configured folder path.';
+        if (btn) btn.style.display = 'inline-block';
+    } else if (type === 'invalid') {
+        msg.textContent = 'Invalid save file. Possibly corrupted save file detected.';
+        if (btn) btn.style.display = 'none';
+    } else if (type === 'parse_incomplete') {
+        msg.textContent = 'Save file could not be fully parsed — critical game data is missing. The map may be incomplete.';
+        if (btn) btn.style.display = 'none';
+    }
+    banner.style.display = 'flex';
+}
+
+function clearSaveError() {
+    _saveErrorState = null;
+    var banner = document.getElementById('save-error-banner');
+    if (banner) banner.style.display = 'none';
+}
+
 window.addEventListener(
     'load',
     function () {
@@ -597,7 +647,10 @@ window.addEventListener(
         function loadSaveFromServer() {
             fetch('/data/game_data.sav', { cache: 'no-store' })
                 .then(function (response) {
-                    if (!response.ok) throw new Error('Save file not found');
+                    if (!response.ok) {
+                        showSaveError('not_found');
+                        throw new Error('http ' + response.status);
+                    }
                     var mtime =
                         parseFloat(response.headers.get('X-File-Mtime')) ||
                         null;
@@ -606,12 +659,17 @@ window.addEventListener(
                     });
                 })
                 .then(function (result) {
-                    if (lastMtime && result.mtime && result.mtime !== lastMtime) {
+                    if (
+                        lastMtime &&
+                        result.mtime &&
+                        result.mtime !== lastMtime
+                    ) {
                         _dismissedWaypoints.koroks.clear();
                         _dismissedWaypoints.locations.clear();
                         BotWApi.delete('/api/state/dismissed/all');
                     }
                     removeAllWaypoints();
+                    clearSaveError();
                     loadSavegameFromArrayBuffer(result.buf, 'game_data.sav');
                     lastMtime = result.mtime;
                     if (result.mtime) updateSaveTimestamp(result.mtime);
@@ -628,7 +686,10 @@ window.addEventListener(
                 var isTracking =
                     trackPlayerRow.getAttribute('data-tracking') === 'true';
                 var next = !isTracking;
-                trackPlayerRow.setAttribute('data-tracking', next ? 'true' : 'false');
+                trackPlayerRow.setAttribute(
+                    'data-tracking',
+                    next ? 'true' : 'false'
+                );
                 BotWApi.patch('/api/state/track-player', { enabled: next });
             });
         }
@@ -666,19 +727,33 @@ window.addEventListener(
             var prev = _prevAppliedState;
             if (prev) {
                 // Map stat overrides changed
-                if (JSON.stringify(s.statOverrides) !== JSON.stringify(prev.statOverrides))
+                if (
+                    JSON.stringify(s.statOverrides) !==
+                    JSON.stringify(prev.statOverrides)
+                )
                     playTone('mapStats');
                 // Player stat overrides changed
-                if (JSON.stringify(s.playerStatOverrides) !== JSON.stringify(prev.playerStatOverrides))
+                if (
+                    JSON.stringify(s.playerStatOverrides) !==
+                    JSON.stringify(prev.playerStatOverrides)
+                )
                     playTone('playerStats');
                 // Server status (last update timestamp) changed
-                if (JSON.stringify(s.serverStatusOverride) !== JSON.stringify(prev.serverStatusOverride))
+                if (
+                    JSON.stringify(s.serverStatusOverride) !==
+                    JSON.stringify(prev.serverStatusOverride)
+                )
                     playTone('lastUpdate');
                 // Sidebar type/service visibility changed — detect enable vs disable
-                var prevHiddenCount = ((prev.hiddenTypes || []).length + (prev.hiddenServices || []).length);
-                var nextHiddenCount = ((s.hiddenTypes || []).length + (s.hiddenServices || []).length);
+                var prevHiddenCount =
+                    (prev.hiddenTypes || []).length +
+                    (prev.hiddenServices || []).length;
+                var nextHiddenCount =
+                    (s.hiddenTypes || []).length +
+                    (s.hiddenServices || []).length;
                 if (nextHiddenCount > prevHiddenCount) playTone('sidebarOff');
-                else if (nextHiddenCount < prevHiddenCount) playTone('sidebarOn');
+                else if (nextHiddenCount < prevHiddenCount)
+                    playTone('sidebarOn');
             }
 
             // Dismissed waypoints
@@ -692,26 +767,37 @@ window.addEventListener(
                 // Remove any waypoints dismissed via external API call
                 newKoroks.forEach(function (name) {
                     if (!_dismissedWaypoints.koroks.has(name)) {
-                        if (locationValues.notFound && locationValues.notFound.koroks)
+                        if (
+                            locationValues.notFound &&
+                            locationValues.notFound.koroks
+                        )
                             delete locationValues.notFound.koroks[name];
                         var el = document.getElementById(name);
                         if (el) {
                             el.remove();
                             [].forEach.call(
                                 document.querySelectorAll('.line.' + name),
-                                function (l) { l.remove(); }
+                                function (l) {
+                                    l.remove();
+                                }
                             );
                             if (locationValues.found) {
                                 locationValues.found.koroks =
                                     (locationValues.found.koroks || 0) + 1;
-                                setValue('span-number-koroks', locationValues.found.koroks);
+                                setValue(
+                                    'span-number-koroks',
+                                    locationValues.found.koroks
+                                );
                             }
                         }
                     }
                 });
                 newLocations.forEach(function (name) {
                     if (!_dismissedWaypoints.locations.has(name)) {
-                        if (locationValues.notFound && locationValues.notFound.locations)
+                        if (
+                            locationValues.notFound &&
+                            locationValues.notFound.locations
+                        )
                             delete locationValues.notFound.locations[name];
                         var el = document.getElementById(name);
                         if (el) {
@@ -719,8 +805,14 @@ window.addEventListener(
                             if (locationValues.found) {
                                 locationValues.found.locations =
                                     (locationValues.found.locations || 0) + 1;
-                                setValue('span-number-locations-visited', locationValues.found.locations);
-                                setValue('span-number-locations', 226 - locationValues.found.locations);
+                                setValue(
+                                    'span-number-locations-visited',
+                                    locationValues.found.locations
+                                );
+                                setValue(
+                                    'span-number-locations',
+                                    226 - locationValues.found.locations
+                                );
                             }
                         }
                     }
@@ -732,13 +824,21 @@ window.addEventListener(
             // Track player
             var row = document.getElementById('track-player-row');
             if (row)
-                row.setAttribute('data-tracking', s.trackPlayer ? 'true' : 'false');
+                row.setAttribute(
+                    'data-tracking',
+                    s.trackPlayer ? 'true' : 'false'
+                );
 
             // Track zoom
             if (trackZoomSlider && s.trackZoom != null) {
                 trackZoomSlider.value = s.trackZoom;
                 // Re-center immediately when zoom changes while tracking is active
-                if (row && row.getAttribute('data-tracking') === 'true' && window._playerMapPos && window.MapView) {
+                if (
+                    row &&
+                    row.getAttribute('data-tracking') === 'true' &&
+                    window._playerMapPos &&
+                    window.MapView
+                ) {
                     window.MapView.smoothCenterOn(
                         window._playerMapPos.x,
                         window._playerMapPos.y,
@@ -749,8 +849,17 @@ window.addEventListener(
 
             // Player position override — place marker and re-center if tracking
             if (s.playerPositionOverride) {
-                placePlayerMarker(s.playerPositionOverride.x, s.playerPositionOverride.z, 'Player');
-                if (row && row.getAttribute('data-tracking') === 'true' && window._playerMapPos && window.MapView) {
+                placePlayerMarker(
+                    s.playerPositionOverride.x,
+                    s.playerPositionOverride.z,
+                    'Player'
+                );
+                if (
+                    row &&
+                    row.getAttribute('data-tracking') === 'true' &&
+                    window._playerMapPos &&
+                    window.MapView
+                ) {
                     window.MapView.smoothCenterOn(
                         window._playerMapPos.x,
                         window._playerMapPos.y,
@@ -788,10 +897,15 @@ window.addEventListener(
 
             // Hidden services
             [].forEach.call(
-                document.querySelectorAll('#services-section label[data-service]'),
+                document.querySelectorAll(
+                    '#services-section label[data-service]'
+                ),
                 function (label) {
                     var svc = label.getAttribute('data-service');
-                    if (s.hiddenServices && s.hiddenServices.indexOf(svc) !== -1) {
+                    if (
+                        s.hiddenServices &&
+                        s.hiddenServices.indexOf(svc) !== -1
+                    ) {
                         label.setAttribute('data-hidden', 'true');
                     } else {
                         label.removeAttribute('data-hidden');
@@ -808,39 +922,77 @@ window.addEventListener(
             if (s.playerStatOverrides) {
                 var ps = s.playerStatOverrides;
                 if (ps.hearts != null) setValue('span-stat-hearts', ps.hearts);
-                if (ps.stamina != null) setValue('span-stat-stamina', parseFloat(ps.stamina).toFixed(1));
-                if (ps.playtime != null) setValue('span-stat-playtime', formatPlaytime(ps.playtime));
-                if (ps.rupees != null) setValue('span-stat-rupees', Math.round(ps.rupees).toLocaleString());
-                if (ps.motorcycle != null) setMotorcycleIndicator(ps.motorcycle);
+                if (ps.stamina != null)
+                    setValue(
+                        'span-stat-stamina',
+                        parseFloat(ps.stamina).toFixed(1)
+                    );
+                if (ps.playtime != null)
+                    setValue('span-stat-playtime', formatPlaytime(ps.playtime));
+                if (ps.rupees != null)
+                    setValue(
+                        'span-stat-rupees',
+                        Math.round(ps.rupees).toLocaleString()
+                    );
+                if (ps.motorcycle != null)
+                    setMotorcycleIndicator(ps.motorcycle);
             }
 
             // Server status override (for test sweeps)
             if (s.serverStatusOverride) {
-                if (s.serverStatusOverride.timestamp != null) updateSaveTimestamp(s.serverStatusOverride.timestamp);
-                if (s.serverStatusOverride.online != null) setServerOnline(s.serverStatusOverride.online);
+                if (s.serverStatusOverride.timestamp != null)
+                    updateSaveTimestamp(s.serverStatusOverride.timestamp);
+                if (s.serverStatusOverride.online != null)
+                    setServerOnline(s.serverStatusOverride.online);
             }
 
             // Stat overrides (for test sweeps — bypasses save-file derived values)
             if (s.statOverrides) {
                 var ov = s.statOverrides;
-                if (ov.koroks != null) setValue('span-number-koroks', ov.koroks);
-                if (ov.locations != null) setValue('span-number-locations', ov.locations);
-                if (ov.locationsVisited != null) setValue('span-number-locations-visited', ov.locationsVisited);
-                if (ov.shrines != null) setValue('span-number-shrines', ov.shrines);
-                if (ov.shrinesCompleted != null) setValue('span-number-shrines-completed', ov.shrinesCompleted);
-                if (ov.shrinesNotActivated != null) setValue('span-number-shrines-not-activated', ov.shrinesNotActivated);
-                if (ov.towers != null) setValue('span-number-towers', ov.towers);
-                if (ov.divineBeasts != null) setValue('span-number-divine-beasts-incomplete', ov.divineBeasts);
-                if (ov.divineBeatsCompleted != null) setValue('span-number-divine-beasts-completed', ov.divineBeatsCompleted);
+                if (ov.koroks != null)
+                    setValue('span-number-koroks', ov.koroks);
+                if (ov.locations != null)
+                    setValue('span-number-locations', ov.locations);
+                if (ov.locationsVisited != null)
+                    setValue(
+                        'span-number-locations-visited',
+                        ov.locationsVisited
+                    );
+                if (ov.shrines != null)
+                    setValue('span-number-shrines', ov.shrines);
+                if (ov.shrinesCompleted != null)
+                    setValue(
+                        'span-number-shrines-completed',
+                        ov.shrinesCompleted
+                    );
+                if (ov.shrinesNotActivated != null)
+                    setValue(
+                        'span-number-shrines-not-activated',
+                        ov.shrinesNotActivated
+                    );
+                if (ov.towers != null)
+                    setValue('span-number-towers', ov.towers);
+                if (ov.divineBeasts != null)
+                    setValue(
+                        'span-number-divine-beasts-incomplete',
+                        ov.divineBeasts
+                    );
+                if (ov.divineBeatsCompleted != null)
+                    setValue(
+                        'span-number-divine-beasts-completed',
+                        ov.divineBeatsCompleted
+                    );
             }
 
             // Test mode banner — testMode is a string (phase label) or falsy
             var banner = document.getElementById('test-banner');
-            if (banner) banner.textContent = s.testMode ? ('⚠ ' + s.testMode) : '';
+            if (banner)
+                banner.textContent = s.testMode ? '⚠ ' + s.testMode : '';
             document.body.classList.toggle('test-mode', !!s.testMode);
 
             _prevAppliedState = s;
             _lastStateVersion = s.stateVersion || 0;
+            updateSectionIndicators();
         }
 
         // Set up toolbar hover highlighting — labels are always in DOM
@@ -852,10 +1004,23 @@ window.addEventListener(
         }, 1000);
         if (window.MapView) window.MapView.onZoom(_saveMapView);
 
+        var _reconfigureBtn = document.getElementById('save-error-reconfigure-btn');
+        if (_reconfigureBtn) {
+            _reconfigureBtn.addEventListener('click', function () {
+                fetch('/api/request-reconfigure', { method: 'POST' });
+            });
+        }
+        var _dismissErrorBtn = document.getElementById('save-error-dismiss-btn');
+        if (_dismissErrorBtn) {
+            _dismissErrorBtn.addEventListener('click', clearSaveError);
+        }
+
         syncStateFromServer().then(function (s) {
             applyState(s, false, true);
             setupToolbarHover();
             setupServiceToggles();
+            setupSectionHeadingToggles();
+            updateSectionIndicators();
             loadSaveFromServer();
         });
 
@@ -867,8 +1032,21 @@ window.addEventListener(
                 })
                 .then(function (data) {
                     setServerOnline(true);
+                    var serverSaysInvalid =
+                        data.saveStatus &&
+                        data.saveStatus !== 'ok';
+                    if (!data.mtime) {
+                        showSaveError('not_found');
+                    } else if (serverSaysInvalid) {
+                        showSaveError('invalid');
+                    } else if (
+                        _saveErrorState === 'not_found' ||
+                        _saveErrorState === 'invalid'
+                    ) {
+                        clearSaveError();
+                    }
                     if (data.mtime) updateSaveTimestamp(data.mtime);
-                    if (data.mtime && data.mtime !== lastMtime) {
+                    if (data.mtime && !serverSaysInvalid && data.mtime !== lastMtime) {
                         loadSaveFromServer();
                     } else if (
                         typeof data.stateVersion === 'number' &&
@@ -905,7 +1083,10 @@ window.addEventListener(
         var _sseSource = new EventSource('/api/events');
         _sseSource.addEventListener('state-change', function (e) {
             var data = JSON.parse(e.data);
-            if (typeof data.stateVersion === 'number' && data.stateVersion !== _lastStateVersion) {
+            if (
+                typeof data.stateVersion === 'number' &&
+                data.stateVersion !== _lastStateVersion
+            ) {
                 if (data.state) {
                     applyState(data.state, true, false);
                 } else {
@@ -995,7 +1176,10 @@ window.addEventListener(
                 'location'
             );
             SavegameEditor.markMap(shrines, 'shrine');
-            SavegameEditor.markMap(locationValues.notFound.shrines, 'shrine-not-activated');
+            SavegameEditor.markMap(
+                locationValues.notFound.shrines,
+                'shrine-not-activated'
+            );
             SavegameEditor.markMap(towers, 'tower');
             SavegameEditor.markMap(divineBeasts, 'divine-beast');
             SavegameEditor.markMap(labos, 'labo');
@@ -1009,6 +1193,7 @@ window.addEventListener(
             addWaypointListeners();
             applyHiddenStates();
             applyServiceHiddenStates();
+            updateSectionIndicators();
         });
 
         initRegionLabels();
@@ -1360,22 +1545,36 @@ function removeWaypoint(element) {
 }
 
 // Render stat display values into the toolbar spans
-function renderStats(korokCount, shrinesCompletedCount, divineBeastsCompletedCount) {
+function renderStats(
+    korokCount,
+    shrinesCompletedCount,
+    divineBeastsCompletedCount
+) {
     setValue('span-number-koroks', korokCount);
     setValue('span-number-locations', 226 - locationValues.found.locations);
     setValue('span-number-total-locations', 226);
     setValue('span-number-locations-visited', locationValues.found.locations);
     setValue('span-number-total-locations-visited', 226);
-    setValue('span-number-shrines', locationValues.found.shrines - shrinesCompletedCount);
+    setValue(
+        'span-number-shrines',
+        Math.max(0, locationValues.found.shrines - shrinesCompletedCount)
+    );
     setValue('span-number-total-shrines', totalShrines);
-    setValue('span-number-shrines-not-activated',
-        locationValues.notFound.shrines ? Object.keys(locationValues.notFound.shrines).length : 0);
+    setValue(
+        'span-number-shrines-not-activated',
+        locationValues.notFound.shrines
+            ? Object.keys(locationValues.notFound.shrines).length
+            : 0
+    );
     setValue('span-number-total-shrines-not-activated', totalShrines);
     setValue('span-number-shrines-completed', shrinesCompletedCount);
     setValue('span-number-total-shrines-completed', totalShrineCompletions);
     setValue('span-number-towers', locationValues.found.towers);
     setValue('span-number-total-towers', totalTowers);
-    setValue('span-number-divine-beasts-incomplete', totalDivineBeasts - divineBeastsCompletedCount);
+    setValue(
+        'span-number-divine-beasts-incomplete',
+        totalDivineBeasts - divineBeastsCompletedCount
+    );
     setValue('span-number-total-divine-beasts-incomplete', totalDivineBeasts);
     setValue('span-number-divine-beasts-completed', divineBeastsCompletedCount);
     setValue('span-number-total-divine-beasts-completed', totalDivineBeasts);
@@ -1474,29 +1673,73 @@ function setMotorcycleIndicator(owned) {
 var _audioCtx = null;
 function _getAudioCtx() {
     if (!_audioCtx) {
-        try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+        try {
+            _audioCtx = new (
+                window.AudioContext || window.webkitAudioContext
+            )();
+        } catch (e) {
+            return null;
+        }
     }
     if (_audioCtx.state === 'suspended') _audioCtx.resume();
     return _audioCtx;
 }
 // Warm up the AudioContext on first user interaction so SSE-triggered tones work.
-document.addEventListener('click', _getAudioCtx, { once: false, passive: true });
-document.addEventListener('keydown', _getAudioCtx, { once: false, passive: true });
+document.addEventListener('click', _getAudioCtx, {
+    once: false,
+    passive: true
+});
+document.addEventListener('keydown', _getAudioCtx, {
+    once: false,
+    passive: true
+});
 
 // Play a short soothing tone for a given change type.
 // Each type has a distinct pitch and envelope. Throttled per-key to avoid stacking.
 var _toneThrottle = {};
 var _toneConfigs = {
-    mapStats:    { freq: 523.25, type: 'sine',     attack: 0.01, sustain: 0.12, decay: 0.35 }, // C5
-    playerStats: { freq: 392.00, type: 'sine',     attack: 0.01, sustain: 0.10, decay: 0.40 }, // G4
-    sidebarOn:   { freq: 659.25, type: 'triangle', attack: 0.01, sustain: 0.08, decay: 0.30 }, // E5
-    sidebarOff:  { freq: 293.66, type: 'triangle', attack: 0.01, sustain: 0.08, decay: 0.30 }, // D4
-    lastUpdate:  { freq: 440.00, type: 'sine',     attack: 0.02, sustain: 0.15, decay: 0.45 }, // A4
+    mapStats: {
+        freq: 523.25,
+        type: 'sine',
+        attack: 0.01,
+        sustain: 0.12,
+        decay: 0.35
+    }, // C5
+    playerStats: {
+        freq: 392.0,
+        type: 'sine',
+        attack: 0.01,
+        sustain: 0.1,
+        decay: 0.4
+    }, // G4
+    sidebarOn: {
+        freq: 659.25,
+        type: 'triangle',
+        attack: 0.01,
+        sustain: 0.08,
+        decay: 0.3
+    }, // E5
+    sidebarOff: {
+        freq: 293.66,
+        type: 'triangle',
+        attack: 0.01,
+        sustain: 0.08,
+        decay: 0.3
+    }, // D4
+    lastUpdate: {
+        freq: 440.0,
+        type: 'sine',
+        attack: 0.02,
+        sustain: 0.15,
+        decay: 0.45
+    } // A4
 };
 function playTone(key) {
     if (_toneThrottle[key]) return;
     _toneThrottle[key] = true;
-    setTimeout(function () { _toneThrottle[key] = false; }, 150);
+    setTimeout(function () {
+        _toneThrottle[key] = false;
+    }, 150);
     var cfg = _toneConfigs[key];
     if (!cfg) return;
     var ctx = _getAudioCtx();
@@ -1505,9 +1748,9 @@ function playTone(key) {
         if (!ctx || ctx.state !== 'running') return;
         // During test mode use staccato envelope (1/4 duration); normal play is full length.
         var testing = document.body.classList.contains('test-mode');
-        var attack  = testing ? cfg.attack * 0.5 : cfg.attack;
+        var attack = testing ? cfg.attack * 0.5 : cfg.attack;
         var sustain = testing ? cfg.sustain * 0.25 : cfg.sustain;
-        var decay   = testing ? cfg.decay * 0.25 : cfg.decay;
+        var decay = testing ? cfg.decay * 0.25 : cfg.decay;
         try {
             var osc = ctx.createOscillator();
             var gain = ctx.createGain();
@@ -1518,15 +1761,22 @@ function playTone(key) {
             gain.gain.setValueAtTime(0, ctx.currentTime);
             gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + attack);
             gain.gain.setValueAtTime(0.18, ctx.currentTime + attack + sustain);
-            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + attack + sustain + decay);
+            gain.gain.exponentialRampToValueAtTime(
+                0.0001,
+                ctx.currentTime + attack + sustain + decay
+            );
             osc.start(ctx.currentTime);
             osc.stop(ctx.currentTime + attack + sustain + decay);
-        } catch (e) { /* oscillator scheduling failed */ }
+        } catch (e) {
+            /* oscillator scheduling failed */
+        }
     }
     if (ctx.state === 'running') {
         scheduleNote();
     } else {
-        ctx.resume().then(scheduleNote).catch(function () {});
+        ctx.resume()
+            .then(scheduleNote)
+            .catch(function () {});
     }
 }
 
@@ -1801,3 +2051,138 @@ function playTone(key) {
         initMapPanZoom();
     }
 })();
+
+// Update ▾/▸ indicator on section headings based on current label hidden state.
+// ▾ = all visible, ▸ = any hidden.
+function updateSectionIndicators() {
+    var sections = [
+        {
+            headingSel: '#map-stats-section .toolbar-section-title',
+            labelsSel: '#map-stats-section label[data-type]'
+        },
+        {
+            headingSel: '#services-section .toolbar-section-title',
+            labelsSel: '#services-section label[data-service]'
+        }
+    ];
+    sections.forEach(function (s) {
+        var heading = document.querySelector(s.headingSel);
+        if (!heading) return;
+        var labels = document.querySelectorAll(s.labelsSel);
+        var anyHidden = [].some.call(labels, function (l) {
+            return l.getAttribute('data-hidden') === 'true';
+        });
+        var indicator = heading.querySelector('.section-toggle-indicator');
+        if (indicator) {
+            indicator.textContent = anyHidden ? ' ▸' : ' ▾';
+        }
+    });
+}
+
+// Attach click handlers to MAP STATS and SERVICES section headings.
+// Clicking harmonizes all items in the section to all-visible or all-hidden.
+function setupSectionHeadingToggles() {
+    var MAP_STATS_TYPES = [
+        'korok',
+        'location',
+        'location-discovered',
+        'shrine-not-activated',
+        'shrine',
+        'shrine-completed',
+        'tower',
+        'divine-beast',
+        'divine-beast-completed'
+    ];
+    var SERVICE_TYPES = [
+        'hatago',
+        'village',
+        'settlement',
+        'great_fairy',
+        'goddess',
+        'yadoya',
+        'shop_yorozu',
+        'shop_bougu',
+        'shop_jewel'
+    ];
+
+    function toggleSection(
+        headingSel,
+        labelsSel,
+        apiEndpoint,
+        itemsKey,
+        items
+    ) {
+        var heading = document.querySelector(headingSel);
+        if (!heading) return;
+        heading.addEventListener('click', function () {
+            var labels = document.querySelectorAll(labelsSel);
+            var allVisible = [].every.call(labels, function (l) {
+                return l.getAttribute('data-hidden') !== 'true';
+            });
+            var makeHidden = allVisible; // all visible → hide all; any hidden → show all
+
+            [].forEach.call(labels, function (label) {
+                if (makeHidden) {
+                    label.setAttribute('data-hidden', 'true');
+                } else {
+                    label.removeAttribute('data-hidden');
+                }
+            });
+
+            // Sync map markers
+            [].forEach.call(labels, function (label) {
+                var typeAttr =
+                    label.getAttribute('data-type') ||
+                    label.getAttribute('data-service');
+                var wpSel = typeAttr
+                    ? label.getAttribute('data-type')
+                        ? '.waypoint.' + typeAttr
+                        : '.waypoint.location-discovered[data-location-type="' +
+                          typeAttr +
+                          '"]'
+                    : null;
+                if (!wpSel) return;
+                [].forEach.call(
+                    document.querySelectorAll(wpSel),
+                    function (wp) {
+                        wp.style.display = makeHidden ? 'none' : '';
+                    }
+                );
+            });
+
+            // Special case: korok path lines follow the korok toggle
+            if (itemsKey === 'types') {
+                [].forEach.call(
+                    document.querySelectorAll('#path-group .line'),
+                    function (ln) {
+                        ln.style.display = makeHidden ? 'none' : '';
+                    }
+                );
+            }
+
+            // Persist via bulk endpoint
+            var body = {};
+            body[itemsKey] = items;
+            body.hidden = makeHidden;
+            BotWApi.patch(apiEndpoint, body);
+
+            updateSectionIndicators();
+        });
+    }
+
+    toggleSection(
+        '#map-stats-section .toolbar-section-title',
+        '#map-stats-section label[data-type]',
+        '/api/state/hidden-types-bulk',
+        'types',
+        MAP_STATS_TYPES
+    );
+
+    toggleSection(
+        '#services-section .toolbar-section-title',
+        '#services-section label[data-service]',
+        '/api/state/hidden-services-bulk',
+        'services',
+        SERVICE_TYPES
+    );
+}

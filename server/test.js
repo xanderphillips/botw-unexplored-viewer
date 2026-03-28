@@ -11,20 +11,51 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const TYPES = [
-    'korok', 'location', 'location-discovered', 'shrine', 'shrine-completed',
-    'tower', 'divine-beast', 'labo', 'warp', 'player-position'
+    'korok',
+    'location',
+    'location-discovered',
+    'shrine',
+    'shrine-completed',
+    'tower',
+    'divine-beast',
+    'labo',
+    'warp',
+    'player-position'
 ];
 const SVCS = [
-    'hatago', 'village', 'settlement', 'great_fairy', 'goddess',
-    'yadoya', 'shop_yorozu', 'shop_bougu', 'shop_jewel'
+    'hatago',
+    'village',
+    'settlement',
+    'great_fairy',
+    'goddess',
+    'yadoya',
+    'shop_yorozu',
+    'shop_bougu',
+    'shop_jewel'
+];
+const MAP_STATS_TYPES = [
+    'korok',
+    'location',
+    'location-discovered',
+    'shrine-not-activated',
+    'shrine',
+    'shrine-completed',
+    'tower',
+    'divine-beast',
+    'divine-beast-completed'
 ];
 
-const FAST = 60;      // ms between rapid-fire steps
-const SLOW = 2500;    // ms between quadrant moves
+const FAST = 60; // ms between rapid-fire steps
+const SLOW = 2500; // ms between quadrant moves
 const ZOOM_STEP = 300; // ms between zoom steps
-const BLINK = 300;    // ms between blink toggles
+const BLINK = 300; // ms between blink toggles
 
-async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave, hasBrowserClients }) {
+async function runTest({
+    writeStateAndBroadcast,
+    readState,
+    broadcastReloadSave,
+    hasBrowserClients
+}) {
     const checks = [];
 
     function check(label, pass) {
@@ -48,7 +79,10 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
 
     // ── Pre-flight: SSE client detection ─────────────────────────────────────
     console.log('--- Pre-flight: SSE Detection ---');
-    check('hasBrowserClients() returns true when SSE client connected', hasBrowserClients());
+    check(
+        'hasBrowserClients() returns true when SSE client connected',
+        hasBrowserClients()
+    );
 
     // ── Phase 1: Sidebar Metrics ───────────────────────────────────────────────
     console.log('--- Phase 1: Sidebar Metrics ---');
@@ -88,22 +122,63 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
     }
     check('all services visible', readState().hiddenServices.length === 0);
 
+    // ── Phase 1b: Bulk Section Toggles ──────────────────────────────────────
+    console.log('--- Phase 1b: Bulk Section Toggles ---');
+    setPhase('Phase 1b: Bulk Section Toggles');
+
+    // Hide all map stats at once
+    writeStateAndBroadcast({ hiddenTypes: MAP_STATS_TYPES });
+    await sleep(SLOW);
+    check(
+        'bulk hide map stats: all 9 types hidden',
+        MAP_STATS_TYPES.every((t) => readState().hiddenTypes.includes(t))
+    );
+
+    // Show all map stats at once
+    writeStateAndBroadcast({ hiddenTypes: [] });
+    await sleep(SLOW);
+    check(
+        'bulk show map stats: no types hidden',
+        readState().hiddenTypes.length === 0
+    );
+
+    // Hide all services at once
+    writeStateAndBroadcast({ hiddenServices: SVCS });
+    await sleep(SLOW);
+    check(
+        'bulk hide services: all 9 services hidden',
+        SVCS.every((s) => readState().hiddenServices.includes(s))
+    );
+
+    // Show all services at once
+    writeStateAndBroadcast({ hiddenServices: [] });
+    await sleep(SLOW);
+    check(
+        'bulk show services: no services hidden',
+        readState().hiddenServices.length === 0
+    );
+
     // ── Phase 2: Map Stats Sweep ───────────────────────────────────────────────
     console.log('--- Phase 2: Map Stats Sweep ---');
     setPhase('Phase 2: Map Stats Sweep');
 
-    for (const step of [...Array(26).keys(), ...[...Array(26).keys()].reverse()]) {
+    for (const step of [
+        ...Array(26).keys(),
+        ...[...Array(26).keys()].reverse()
+    ]) {
         const pct = step / 25;
-        writeStateAndBroadcast({ statOverrides: {
-            koroks:                Math.round(pct * 900),
-            locations:             Math.round(pct * 226),
-            shrines:               Math.round(pct * 120),
-            shrinesCompleted:      Math.round(pct * 120),
-            shrinesNotActivated:   Math.round((1 - pct) * 120),
-            towers:                Math.round(pct * 15),
-            divineBeasts:          Math.round(pct * 4),
-            divineBeatsCompleted:  Math.round(pct * 4)
-        }});
+        writeStateAndBroadcast({
+            statOverrides: {
+                koroks: Math.round(pct * 900),
+                locations: Math.round(pct * 226),
+                shrines: Math.round(pct * 120),
+                shrinesCompleted: Math.round(pct * 120),
+                shrinesNotActivated: Math.round((1 - pct) * 120),
+                towers: Math.round(pct * 15),
+                divineBeasts: Math.round(pct * 4),
+                divineBeatsCompleted: Math.round(pct * 4)
+            }
+        });
         await sleep(FAST);
     }
     writeStateAndBroadcast({ statOverrides: null });
@@ -113,14 +188,19 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
     console.log('--- Phase 3: Player Stats Sweep ---');
     setPhase('Phase 3: Player Stats Sweep');
 
-    for (const step of [...Array(26).keys(), ...[...Array(26).keys()].reverse()]) {
+    for (const step of [
+        ...Array(26).keys(),
+        ...[...Array(26).keys()].reverse()
+    ]) {
         const pct = step / 25;
-        writeStateAndBroadcast({ playerStatOverrides: {
-            hearts:   Math.round(pct * 30),
-            stamina:  Math.round(pct * 30) / 10,
-            playtime: Math.round(pct * 86400),
-            rupees:   Math.round(pct * 1000000)
-        }});
+        writeStateAndBroadcast({
+            playerStatOverrides: {
+                hearts: Math.round(pct * 30),
+                stamina: Math.round(pct * 30) / 10,
+                playtime: Math.round(pct * 86400),
+                rupees: Math.round(pct * 1000000)
+            }
+        });
         await sleep(FAST);
     }
     for (let i = 0; i < 2; i++) {
@@ -136,19 +216,28 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
     console.log('--- Phase 4: Last Update / Server Status ---');
     setPhase('Phase 4: Last Update');
 
-    for (const step of [...Array(26).keys(), ...[...Array(26).keys()].reverse()]) {
+    for (const step of [
+        ...Array(26).keys(),
+        ...[...Array(26).keys()].reverse()
+    ]) {
         const pct = step / 25;
-        const year   = 1900 + Math.round(pct * 100);
-        const hour   = Math.round(pct * 23);
+        const year = 1900 + Math.round(pct * 100);
+        const hour = Math.round(pct * 23);
         const minute = Math.round(pct * 59);
         const ts = Date.UTC(year, 0, 1, hour, minute, 0);
-        writeStateAndBroadcast({ serverStatusOverride: { timestamp: ts, online: true } });
+        writeStateAndBroadcast({
+            serverStatusOverride: { timestamp: ts, online: true }
+        });
         await sleep(FAST);
     }
     for (let i = 0; i < 2; i++) {
-        writeStateAndBroadcast({ serverStatusOverride: { timestamp: Date.now(), online: true } });
+        writeStateAndBroadcast({
+            serverStatusOverride: { timestamp: Date.now(), online: true }
+        });
         await sleep(BLINK);
-        writeStateAndBroadcast({ serverStatusOverride: { timestamp: Date.now(), online: false } });
+        writeStateAndBroadcast({
+            serverStatusOverride: { timestamp: Date.now(), online: false }
+        });
         await sleep(BLINK);
     }
     writeStateAndBroadcast({ serverStatusOverride: null });
@@ -158,8 +247,13 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
     console.log('--- Phase 5: Player Tracking ---');
     setPhase('Phase 5: Player Tracking');
 
-    const typesWithoutPlayer = readState().hiddenTypes.filter((t) => t !== 'player-position');
-    writeStateAndBroadcast({ trackPlayer: true, hiddenTypes: typesWithoutPlayer });
+    const typesWithoutPlayer = readState().hiddenTypes.filter(
+        (t) => t !== 'player-position'
+    );
+    writeStateAndBroadcast({
+        trackPlayer: true,
+        hiddenTypes: typesWithoutPlayer
+    });
 
     writeStateAndBroadcast({ playerPositionOverride: { x: 0, z: 0 } });
     await sleep(1000);
@@ -171,9 +265,9 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
 
     for (const { name, x, z } of [
         { name: 'NW', x: -4500, z: -3000 },
-        { name: 'NE', x:  4500, z: -3000 },
-        { name: 'SE', x:  4500, z:  3000 },
-        { name: 'SW', x: -4500, z:  3000 },
+        { name: 'NE', x: 4500, z: -3000 },
+        { name: 'SE', x: 4500, z: 3000 },
+        { name: 'SW', x: -4500, z: 3000 },
         { name: 'Center', x: 0, z: 0 }
     ]) {
         console.log(`  ${name}...`);
@@ -182,24 +276,27 @@ async function runTest({ writeStateAndBroadcast, readState, broadcastReloadSave,
     }
 
     check('trackPlayer still enabled', readState().trackPlayer === true);
-    writeStateAndBroadcast({ trackPlayer: false, playerPositionOverride: null });
+    writeStateAndBroadcast({
+        trackPlayer: false,
+        playerPositionOverride: null
+    });
 
     // ── Restore ───────────────────────────────────────────────────────────────
     console.log('--- Restoring pre-test state ---');
     setPhase('Restoring...');
 
     writeStateAndBroadcast({
-        trackPlayer:          pre.trackPlayer,
-        trackZoom:            pre.trackZoom,
-        hiddenTypes:          pre.hiddenTypes || [],
-        hiddenServices:       pre.hiddenServices || [],
-        mapView:              { scale: null, panX: null, panY: null },
-        dismissedWaypoints:   { koroks: [], locations: [] },
+        trackPlayer: pre.trackPlayer,
+        trackZoom: pre.trackZoom,
+        hiddenTypes: pre.hiddenTypes || [],
+        hiddenServices: pre.hiddenServices || [],
+        mapView: { scale: null, panX: null, panY: null },
+        dismissedWaypoints: { koroks: [], locations: [] },
         playerPositionOverride: null,
-        statOverrides:        null,
-        playerStatOverrides:  null,
+        statOverrides: null,
+        playerStatOverrides: null,
         serverStatusOverride: null,
-        testMode:             ''
+        testMode: ''
     });
     // Tell browsers to reload save file so stats revert to actual in-game values
     if (broadcastReloadSave) broadcastReloadSave();
