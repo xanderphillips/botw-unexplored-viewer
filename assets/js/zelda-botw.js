@@ -1040,13 +1040,21 @@ window.addEventListener(
                 })
                 .then(function (data) {
                     setServerOnline(true);
+                    var serverSaysInvalid =
+                        data.saveStatus &&
+                        data.saveStatus !== 'ok';
                     if (!data.mtime) {
                         showSaveError('not_found');
-                    } else if (_saveErrorState === 'not_found') {
+                    } else if (serverSaysInvalid) {
+                        showSaveError('invalid');
+                    } else if (
+                        _saveErrorState === 'not_found' ||
+                        _saveErrorState === 'invalid'
+                    ) {
                         clearSaveError();
                     }
                     if (data.mtime) updateSaveTimestamp(data.mtime);
-                    if (data.mtime && data.mtime !== lastMtime) {
+                    if (data.mtime && !serverSaysInvalid && data.mtime !== lastMtime) {
                         loadSaveFromServer();
                     } else if (
                         typeof data.stateVersion === 'number' &&
