@@ -23,6 +23,7 @@
       "server/server.js",
       "server/state.js",
       "server/test.js",
+      "server/validate-save.js",
       "assets/**/*",
       "index.html",
       "favicon.png",
