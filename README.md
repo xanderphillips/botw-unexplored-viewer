@@ -202,6 +202,7 @@ The browser subscribes to this Server-Sent Events stream. Any API write immediat
 
 The browser plays a short oscillator tone whenever key state changes arrive via SSE — distinct pitches for map stat changes, player stat changes, sidebar items being shown or hidden, and last-update/status changes. Tones are generated entirely via the Web Audio API (no audio files). During test runs the envelope is shortened to a staccato click so rapid sweeps don't produce overlapping sounds.
 
+#### CREDITS
 Thank you @marcrobledo for the [save game editors](https://github.com/marcrobledo/savegame-editors) much of this code is based on, and @MrCheeze for their [waypoint map](https://github.com/MrCheeze/botw-waypoint-map) which I modified to get the map markers I needed, as well as their [datamining research](https://github.com/MrCheeze/botw-tools). Map icons sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap). Region label coordinates and English place names sourced from [zeldamods/objmap](https://github.com/zeldamods/objmap) and [zeldamods/radar](https://github.com/zeldamods/radar). Original extension work by Eric Defore, on whose foundation this project was built.
 
 ## Windows Executable
