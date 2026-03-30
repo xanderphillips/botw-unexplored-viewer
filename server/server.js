@@ -141,11 +141,12 @@ app.get('/api/version', (req, res) => {
         // STATIC_ROOT is set by launcher.js to the app root (electron binary).
         // In Docker, __dirname is already the app root and package.json.root is used.
         const rootDir = process.env.STATIC_ROOT || __dirname;
-        let packageJsonPath = path.join(rootDir, 'package.json.root');
-        if (!fs.existsSync(packageJsonPath)) {
-            packageJsonPath = path.join(rootDir, 'package.json');
+        let packageJsonContent;
+        try {
+            packageJsonContent = fs.readFileSync(path.join(rootDir, 'package.json.root'), 'utf-8');
+        } catch {
+            packageJsonContent = fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8');
         }
-        const packageJsonContent = fs.readFileSync(packageJsonPath, 'utf-8');
         const packageJson = JSON.parse(packageJsonContent);
         res.json({ ok: true, version: packageJson.version });
     } catch (err) {
@@ -157,11 +158,9 @@ app.get('/api/version', (req, res) => {
 
 const sseClients = new Set();
 
-function broadcastStateChange(nextState) {
+function broadcast(eventName, data) {
     if (sseClients.size === 0) return;
-    // Include full state in the event so browsers can apply it immediately
-    // without a follow-up GET /api/state round-trip.
-    const msg = `event: state-change\ndata: ${JSON.stringify({ stateVersion: nextState.stateVersion, state: nextState })}\n\n`;
+    const msg = `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
     sseClients.forEach((client) => {
         try {
             client.write(msg);
@@ -169,6 +168,12 @@ function broadcastStateChange(nextState) {
             sseClients.delete(client);
         }
     });
+}
+
+function broadcastStateChange(nextState) {
+    // Include full state in the event so browsers can apply it immediately
+    // without a follow-up GET /api/state round-trip.
+    broadcast('state-change', { stateVersion: nextState.stateVersion, state: nextState });
 }
 
 // Wrap writeState so every state mutation triggers an SSE broadcast
@@ -181,15 +186,7 @@ function writeStateAndBroadcast(patch) {
 // Tell all connected browsers to reload their save file data from /data/game_data.sav.
 // Used after test completion so stats revert to actual in-game values.
 function broadcastReloadSave() {
-    if (sseClients.size === 0) return;
-    const msg = `event: reload-save\ndata: {}\n\n`;
-    sseClients.forEach((client) => {
-        try {
-            client.write(msg);
-        } catch {
-            sseClients.delete(client);
-        }
-    });
+    broadcast('reload-save', {});
 }
 
 // GET /api/events — SSE stream; pushes state-change events on any state mutation

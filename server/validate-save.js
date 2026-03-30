@@ -20,8 +20,7 @@ const MAX_SIZE = 1500000;  // modded ceiling from checkValidSavegame
  *   reason: 'ok' | 'file_too_small' | 'file_too_large' | 'invalid_header'
  */
 function validateSaveBuffer(buf) {
-    if (!buf || buf.length < 8) return { valid: false, reason: 'file_too_small' };
-    if (buf.length < MIN_SIZE)  return { valid: false, reason: 'file_too_small' };
+    if (!buf || buf.length < MIN_SIZE) return { valid: false, reason: 'file_too_small' };
     if (buf.length > MAX_SIZE)  return { valid: false, reason: 'file_too_large' };
 
     // Try big-endian (Wii U), then little-endian (Switch)
