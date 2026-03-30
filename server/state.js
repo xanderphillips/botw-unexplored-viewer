@@ -86,7 +86,7 @@ function writeState(patch) {
         return next;
     } catch (e) {
         console.error('[state] write failed:', e.message);
-        return readState();
+        return current;
     }
 }
 

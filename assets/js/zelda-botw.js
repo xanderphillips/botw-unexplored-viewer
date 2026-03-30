@@ -531,15 +531,8 @@ SavegameEditor = {
                 ),
                 d = '';
 
-            for (var index in points) {
-                if (index == 0) {
-                    d = d + 'M ';
-                } else {
-                    d = d + ' L';
-                }
-
-                d =
-                    d +
+            for (var index = 0; index < points.length; index++) {
+                d += (index === 0 ? 'M ' : ' L') +
                     (3000 + points[index].x / 2) +
                     ' ' +
                     (2500 + points[index].y / 2);
@@ -563,13 +556,8 @@ function onScroll() {
     var h = document
         .getElementById('header-top')
         .getBoundingClientRect().height;
-    if (window.scrollY > h) {
-        document.getElementById('header').style.position = 'fixed';
-        document.getElementById('header').style.top = '-' + h + 'px';
-    } else {
-        document.getElementById('header').style.position = 'fixed';
-        document.getElementById('header').style.top = '0px';
-    }
+    document.getElementById('header').style.position = 'fixed';
+    document.getElementById('header').style.top = window.scrollY > h ? '-' + h + 'px' : '0px';
 }
 
 var _saveErrorState = null; // null | 'not_found' | 'invalid' | 'parse_incomplete'
